@@ -10,7 +10,7 @@ import json
 import asyncio
 from typing import List, Dict, Any
 import os
-from intelligent_sqlite_processor import process_sqlite_query, test_sqlite_connection, get_database_stats
+from intelligent_sqlite_processor_v2 import process_sqlite_query, test_sqlite_connection, get_database_stats
 
 app = FastAPI()
 
@@ -93,15 +93,24 @@ async def generate_sse_response(query: str):
     await asyncio.sleep(0.1)
     
     try:
+        # Send progress update
+        yield f"data: {json.dumps({'status': 'processing', 'message': 'Generating SQL queries and visualizations...'})}\n\n"
+        await asyncio.sleep(0.1)
+        
         # Process query using SQLite
         result = process_sqlite_query(query)
         
-        # Send the complete result
-        yield f"data: {json.dumps({'status': 'complete', **result})}\n\n"
+        # Check if successful
+        if result.get('success', True):
+            # Send the complete result
+            yield f"data: {json.dumps({'status': 'complete', **result})}\n\n"
+        else:
+            # Send error with helpful message
+            yield f"data: {json.dumps({'status': 'error', 'error': result.get('error', 'Unknown error'), 'recommendations': result.get('recommendations', [])})}\n\n"
         
     except Exception as e:
         error_msg = f"Error processing query: {str(e)}"
-        yield f"data: {json.dumps({'status': 'error', 'error': error_msg})}\n\n"
+        yield f"data: {json.dumps({'status': 'error', 'error': error_msg, 'recommendations': ['Try a simpler query', 'Check your connection']})}\n\n"
 
 @app.post("/analyze")
 async def analyze(request: QueryRequest):
