@@ -60,6 +60,11 @@ htmlcov/
 *.sqlite
 *.sqlite3
 
+# Large data files
+*.csv
+data/uploads/
+backend/data/uploads/
+
 # Logs
 logs/
 *.log
