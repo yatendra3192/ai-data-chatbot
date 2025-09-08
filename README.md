@@ -2,6 +2,10 @@
 
 An intelligent data analysis chatbot that uses OpenAI's GPT-4 to dynamically analyze data from SQLite database and generate multiple visualizations. Features a purple gradient chat interface with real-time data analysis on 1.4+ million rows of CRM data.
 
+**Repository:** https://github.com/yatendra3192/ai-data-chatbot
+
+**Last Updated:** September 8, 2025
+
 ## Features
 
 - **Intelligent Query Processing**: Uses LLM to dynamically generate SQL queries from natural language
@@ -52,39 +56,56 @@ An intelligent data analysis chatbot that uses OpenAI's GPT-4 to dynamically ana
 
 ## Installation
 
-### 1. Backend Setup
+### Prerequisites
+- Python 3.9+
+- Node.js 18+
+- OpenAI API key
+
+### 1. Clone the Repository
 
 ```bash
-cd ai-data-chatbot/backend
+git clone https://github.com/yatendra3192/ai-data-chatbot.git
+cd ai-data-chatbot
+```
+
+### 2. Backend Setup
+
+```bash
+cd backend
 pip install -r requirements.txt
 ```
 
-### 2. Environment Variables
+### 3. Environment Variables
 
 Create `.env` file in the root directory:
 ```bash
-OPENAI_API_KEY=sk-proj-...
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-### 3. Frontend Setup
+### 4. Frontend Setup
 
 ```bash
-cd ai-data-chatbot/frontend
+cd frontend
 npm install
 ```
 
-### 4. Database Setup (if needed)
+### 5. Database Setup
 
-The SQLite database is already created. To recreate:
+**Option A: Using Pre-built Database**
+- Download the SQLite database file (465MB) from [releases/database] (if available)
+- Place it in `backend/database/crm_analytics.db`
+
+**Option B: Build from CSV Files**
+1. Obtain the CSV files:
+   - salesorder.csv (118MB+)
+   - Quote.csv
+   - quotedetail.csv
+2. Place them in appropriate directories
+3. Run the import script:
 ```bash
-cd ai-data-chatbot/backend/database
+cd backend/database
 python import_csv_to_sqlite.py
 ```
-
-This imports:
-- `C:\Users\User\Documents\DVwithCC\salesorder.csv`
-- `C:\Users\User\Documents\DVwithCC\Quote.csv`
-- `C:\Users\User\Documents\DVwithCC\quotedetail.csv`
 
 ## Running the Application
 
@@ -206,14 +227,66 @@ response = client.chat.completions.create(
    - Check with `/bashes` command
    - Kill old processes if needed
 
-## Next Steps
+## Project Status
 
-1. Test query functionality with fixed GPT-4 integration
-2. Verify visualizations are generating correctly
-3. Consider adding query caching for frequent questions
-4. Add error handling for database connection issues
-5. Optimize SQL queries for complex aggregations
-6. Implement data export functionality
+### ✅ Completed Features
+- SQLite database with 1.4M+ rows integrated
+- FastAPI backend with SSE streaming
+- Next.js frontend with purple gradient UI
+- GPT-4-turbo integration for SQL generation
+- Multiple dynamic chart generation
+- Real-time data analysis capabilities
+- GitHub repository setup and deployment
+
+### 🚀 Upcoming Improvements (Priority Order)
+
+#### Phase 1: Core Functionality Enhancement
+1. **Query Optimization**
+   - Add query result caching for frequently asked questions
+   - Implement query optimization for complex JOINs
+   - Add query execution time limits
+
+2. **Error Handling & Resilience**
+   - Improve error messages for failed queries
+   - Add database connection retry logic
+   - Implement graceful fallbacks for API failures
+
+3. **User Experience**
+   - Add loading spinners during query processing
+   - Implement query history/saved queries
+   - Add ability to export charts as images/PDF
+
+#### Phase 2: Advanced Features
+1. **Data Export**
+   - CSV export for query results
+   - Excel export with formatting
+   - PDF reports with charts and insights
+
+2. **Advanced Analytics**
+   - Time-series forecasting
+   - Anomaly detection
+   - Comparative analysis tools
+
+3. **Performance**
+   - Implement Redis caching
+   - Add database indexing optimization
+   - Query parallelization for multiple charts
+
+#### Phase 3: Enterprise Features
+1. **Security & Authentication**
+   - User authentication system
+   - Role-based access control
+   - Query audit logging
+
+2. **Scalability**
+   - Multi-database support
+   - Horizontal scaling capabilities
+   - Load balancing for API requests
+
+3. **Integration**
+   - REST API for external systems
+   - Webhook support for automated reports
+   - Integration with BI tools
 
 ## License
 

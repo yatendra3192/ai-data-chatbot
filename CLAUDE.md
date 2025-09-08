@@ -1,4 +1,8 @@
-# AI Data Analysis Chatbot - Project Documentation
+# AI Data Analysis Chatbot - Development Documentation
+
+**Repository:** https://github.com/yatendra3192/ai-data-chatbot  
+**Last Updated:** September 8, 2025  
+**Current Session:** Project setup completed, ready for enhancements
 
 ## Overview
 An intelligent data analysis chatbot application that uses OpenAI's GPT models to dynamically analyze data from SQLite database and generate multiple visualizations. The app features a purple gradient chat interface with real-time data analysis capabilities on 1.4+ million rows of CRM data.
@@ -122,20 +126,135 @@ This will import:
 - **Full dataset analysis** (all 1.4M rows)
 - **Advanced SQL features** (JOINs, aggregations, indexes)
 
-## Next Steps for Tomorrow
-1. Test query functionality with the fixed GPT-4 integration
-2. Verify visualizations are being generated correctly
-3. Consider adding query caching for frequently asked questions
-4. Add error handling for database connection issues
-5. Optimize SQL queries for complex aggregations
+## Development Roadmap for Tomorrow
 
-## Known Issues to Address
-- GPT-5 model not available (using GPT-4-turbo instead)
-- Some complex queries may need optimization
-- Consider adding progress indicators for long-running queries
+### Immediate Tasks (Day 1 Priority)
+1. **Test Core Functionality**
+   - [ ] Test 5-10 different query types to ensure stability
+   - [ ] Verify all chart types render correctly
+   - [ ] Check error handling for malformed queries
+   - [ ] Test with edge cases (empty results, large datasets)
+
+2. **User Experience Improvements**
+   - [ ] Add loading animation during query processing
+   - [ ] Implement query suggestions/examples dropdown
+   - [ ] Add "Copy to Clipboard" for SQL queries
+   - [ ] Show query execution time
+
+3. **Performance Optimization**
+   - [ ] Add indexes to frequently queried columns
+   - [ ] Implement basic query result caching (in-memory)
+   - [ ] Optimize chart rendering for large datasets
+   - [ ] Add query timeout handling
+
+### Week 1 Goals
+1. **Enhanced Analytics**
+   - [ ] Add trend analysis capabilities
+   - [ ] Implement year-over-year comparisons
+   - [ ] Add statistical summaries to results
+   - [ ] Create dashboard view with KPIs
+
+2. **Data Export Features**
+   - [ ] CSV export for query results
+   - [ ] Chart export as PNG/SVG
+   - [ ] Generate PDF reports
+   - [ ] Implement scheduled reports
+
+3. **Query Management**
+   - [ ] Save favorite queries
+   - [ ] Query history with re-run capability
+   - [ ] Share query links
+   - [ ] Query templates for common analyses
+
+### Technical Debt & Improvements
+1. **Code Quality**
+   - [ ] Add unit tests for backend endpoints
+   - [ ] Implement integration tests
+   - [ ] Add TypeScript strict mode
+   - [ ] Set up linting and formatting
+
+2. **Documentation**
+   - [ ] API documentation with Swagger
+   - [ ] Component documentation
+   - [ ] Deployment guide
+   - [ ] Contributing guidelines
+
+3. **Infrastructure**
+   - [ ] Docker containerization
+   - [ ] CI/CD pipeline setup
+   - [ ] Environment-based configuration
+   - [ ] Logging and monitoring
+
+## Known Issues & Bugs
+
+### High Priority
+- [ ] Large result sets (>10k rows) can slow down chart rendering
+- [ ] No graceful handling when OpenAI API rate limit is hit
+- [ ] Memory usage grows with repeated queries (no cleanup)
+
+### Medium Priority
+- [ ] Chart colors are not consistent across renders
+- [ ] No validation for SQL injection in generated queries
+- [ ] SSE connection doesn't reconnect on failure
+
+### Low Priority
+- [ ] Dark mode toggle doesn't persist
+- [ ] Mobile responsive design needs work
+- [ ] No keyboard shortcuts for common actions
+
+## Development Tips
+
+### Quick Commands
+```bash
+# Start both servers
+cd ai-data-chatbot/backend && python -m uvicorn main_sqlite:app --reload &
+cd ai-data-chatbot/frontend && npm run dev
+
+# Check database stats
+cd ai-data-chatbot/backend
+python -c "from intelligent_sqlite_processor import get_database_stats; import json; print(json.dumps(get_database_stats(), indent=2))"
+
+# Test a query directly
+curl -X POST http://localhost:8000/test-query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "top 5 customers by revenue"}'
+```
+
+### Performance Monitoring
+- Backend logs: Check uvicorn output for query times
+- Frontend: Use Chrome DevTools Performance tab
+- Database: Use SQLite EXPLAIN QUERY PLAN
+
+### Testing Queries
+1. Simple aggregations: "Total revenue by month"
+2. Complex JOINs: "Customer orders with product details"
+3. Time-series: "Sales trend over last 12 months"
+4. Comparisons: "Top products this year vs last year"
+5. Statistical: "Average order value distribution"
+
+## Architecture Decisions
+
+### Why SQLite?
+- Fast queries on 1.4M+ rows
+- No separate database server needed
+- Portable and easy to distribute
+- Built-in full-text search capabilities
+
+### Why SSE over WebSockets?
+- Simpler implementation
+- Better for one-way streaming
+- Works through proxies/firewalls
+- Auto-reconnection in browsers
+
+### Why GPT-4-turbo?
+- Best balance of performance and cost
+- Excellent SQL generation
+- Good at understanding business context
+- Reliable JSON output formatting
 
 ## Important Notes
-- Always ensure SQLite database exists before starting backend
-- The app now uses SQL queries instead of pandas operations
-- All 1.4M rows are available for analysis
-- Multiple background processes may be running - check with `/bashes` command
+- Database file is gitignored (465MB)
+- CSV files are gitignored (>100MB)
+- Environment variables in .env (not in repo)
+- Two servers run simultaneously (ports 8000, 3000)
+- GitHub repo at: https://github.com/yatendra3192/ai-data-chatbot
