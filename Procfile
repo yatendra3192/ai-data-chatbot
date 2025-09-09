@@ -1,1 +1,1 @@
-web: cd backend && python -m uvicorn main_sqlite:app --host 0.0.0.0 --port $PORT
+web: . /opt/venv/bin/activate && cd backend && python -m uvicorn main_sqlite:app --host 0.0.0.0 --port $PORT
