@@ -35,14 +35,16 @@ class CSVToSQLiteImporter:
         cursor.execute("DROP TABLE IF EXISTS quote")
         cursor.execute("DROP TABLE IF EXISTS quotedetail")
         
-        # Create salesorder table
+        # Create salesorder table with tax columns
         cursor.execute("""
             CREATE TABLE salesorder (
                 Id TEXT PRIMARY KEY,
                 customeridname TEXT,
                 totalamount REAL,
+                totaltax REAL,
                 statuscode INTEGER,
                 modifiedon TEXT,
+                createdon TEXT,
                 billto_city TEXT,
                 billto_country TEXT,
                 ordernumber TEXT
@@ -170,8 +172,10 @@ class CSVToSQLiteImporter:
             'Id': 'Id',
             'customeridname': 'customeridname',
             'totalamount': 'totalamount',
+            'totaltax': 'totaltax',
             'statuscode': 'statuscode',
             'modifiedon': 'modifiedon',
+            'createdon': 'createdon',
             'billto_city': 'billto_city',
             'billto_country': 'billto_country',
             'ordernumber': 'ordernumber'

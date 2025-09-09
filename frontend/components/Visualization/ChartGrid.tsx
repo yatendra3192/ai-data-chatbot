@@ -22,21 +22,22 @@ export function ChartGrid({ visualizations, data }: ChartGridProps) {
     );
   }
   
-  // Determine grid layout based on number of visualizations
-  const gridCols = visualizations.length === 1 ? "grid-cols-1" : 
-                   visualizations.length === 2 ? "grid-cols-1 md:grid-cols-2" :
-                   visualizations.length === 3 ? "grid-cols-1 md:grid-cols-3" :
-                   visualizations.length === 4 ? "grid-cols-1 md:grid-cols-2" :
-                   visualizations.length === 5 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" :
-                   "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+  // Use vertical layout (single column) for better visibility
+  // Each chart will be full width and have more height
+  const gridCols = "grid-cols-1";
   
-  console.log("[ChartGrid] Rendering", visualizations.length, "charts with layout:", gridCols);
+  console.log("[ChartGrid] Rendering", visualizations.length, "charts with vertical layout");
   
   return (
-    <div className={`grid ${gridCols} gap-6`}>
+    <div className={`grid ${gridCols} gap-8`}>
       {visualizations.map((viz, index) => {
         console.log(`[ChartGrid] Rendering chart ${index + 1}:`, viz.type);
-        return <DynamicChart key={index} visualization={viz} />;
+        // Wrap each chart in a larger container for better visibility
+        return (
+          <div key={index} className="w-full">
+            <DynamicChart visualization={viz} />
+          </div>
+        );
       })}
     </div>
   );

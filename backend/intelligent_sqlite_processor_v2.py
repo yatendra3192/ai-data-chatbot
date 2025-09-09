@@ -45,42 +45,57 @@ def extract_json_from_text(text: str) -> Optional[Dict]:
         return None
 
 def get_database_schema():
-    """Get the database schema for the LLM context"""
+    """Get the database schema for the LLM context with accurate column information"""
     return """
-    Database Schema (SQLite):
+    Database Schema (SQLite) - ACTUAL AVAILABLE COLUMNS:
     
-    1. salesorder table (60,481 rows):
-       - Id (TEXT PRIMARY KEY)
+    1. salesorder table (60,481 rows) - Orders/Sales Data:
+       AVAILABLE COLUMNS:
+       - Id (TEXT PRIMARY KEY): Order record ID  
+       - ordernumber: Order number/ID (e.g., ORD-30741-T8V7)
        - customeridname: Customer name
-       - totalamount: Order total amount (REAL)
-       - statuscode: Order status (INTEGER)
+       - totalamount: Total order amount (REAL)
+       - totaltax: Tax amount (REAL) ✓ NOW AVAILABLE
+       - createdon: Order creation date (TEXT) ✓ NOW AVAILABLE
+       - statuscode: Order status code (INTEGER)
        - modifiedon: Last modified date (TEXT)
        - billto_city: Billing city
-       - billto_country: Billing country
-       - ordernumber: Order number
+       - billto_country: Billing country/region
+       
+       NOTE: Tax information is NOW AVAILABLE. Use 'totaltax' column for tax amounts.
     
-    2. quote table (141,461 rows):
-       - Id (TEXT PRIMARY KEY)
-       - name: Quote name
-       - totalamount: Quote total amount (REAL)
-       - statuscode: Quote status (INTEGER)
+    2. quote table (141,461 rows) - Quote/Proposal Data:
+       AVAILABLE COLUMNS:
+       - Id (TEXT PRIMARY KEY): Quote record ID
+       - quotenumber: Quote number (unique identifier)
+       - name: Quote name/title
        - customeridname: Customer name
+       - totalamount: Total quote amount (REAL)
+       - statuscode: Quote status (INTEGER)
        - modifiedon: Last modified date (TEXT)
-       - quotenumber: Quote number
+       
+       NOTE: Tax, discount, and other financial columns are NOT in current database.
     
-    3. quotedetail table (1,237,446 rows):
-       - Id (TEXT PRIMARY KEY)
-       - quoteid: Foreign key to quote table
+    3. quotedetail table (1,237,446 rows) - Quote Line Items:
+       AVAILABLE COLUMNS:
+       - Id (TEXT PRIMARY KEY): Line item ID
+       - quoteid: Parent quote ID (foreign key to quote table)
        - productidname: Product name
        - quantity: Quantity ordered (REAL)
        - priceperunit: Price per unit (REAL)
-       - extendedamount: Extended amount (REAL)
+       - extendedamount: Line total (quantity × price) (REAL)
        - producttypecode: Product type code (INTEGER)
+       
+       NOTE: Tax, discount columns are NOT in current database.
     
-    SQLite Date Functions:
-    - Use strftime('%Y-%m', modifiedon) for month extraction
-    - Use strftime('%Y', modifiedon) for year extraction
-    - Use date(modifiedon) for date comparisons
+    IMPORTANT NOTES:
+    - Tax information is NOT available in any table (no totaltax columns)
+    - The totalamount field contains the complete amount
+    - Order ID: Use 'ordernumber' field (e.g., ORD-30741-T8V7)
+    - SQLite date functions: strftime('%Y-%m', modifiedon) for year-month
+    - Use LIMIT for SQLite (not TOP like SQL Server)
+    - All amounts are in REAL (floating point) format
+    - When asked about tax, explain it's not available in the current database
     """
 
 def validate_and_fix_sql(sql: str) -> str:
@@ -271,9 +286,63 @@ Return ONLY the JSON object, nothing else."""
                 else:
                     answer += f"\n\nFound {len(main_df)} total results (showing top entries)."
             
+            # Generate detailed text summary with second LLM call
+            text_summary = ""
+            if len(main_df) > 0:
+                # Convert top rows to JSON for LLM
+                data_for_summary = main_df.head(10).to_dict('records')
+                
+                # Clean up data types for JSON serialization
+                for record in data_for_summary:
+                    for key, value in record.items():
+                        if pd.isna(value):
+                            record[key] = None
+                        elif isinstance(value, (pd.Timestamp, datetime)):
+                            record[key] = str(value)
+                        elif isinstance(value, (np.integer, np.floating)):
+                            record[key] = float(value)
+                
+                text_summary_prompt = f"""
+                User asked: {query}
+                
+                The SQL query returned this data (top 10 rows):
+                {json.dumps(data_for_summary, indent=2)}
+                
+                Please format this data into a clear, detailed text summary.
+                Include ALL the specific values from the data in a readable list format.
+                
+                Format guidelines:
+                - For orders: "Order ID: [ID] | Customer: [Name] | Amount: $[Amount formatted with commas] | Status: [Code] | Date: [Date]"
+                - For products: "Product: [Name] | Quantity: [Qty] | Revenue: $[Amount formatted with commas]"  
+                - For customers: "Customer: [Name] | Total: $[Amount formatted with commas] | Orders: [Count]"
+                - For time-based data: "Period: [Date/Month] | Value: $[Amount formatted with commas]"
+                
+                List ALL rows from the data provided, numbered 1, 2, 3, etc.
+                Format numbers with commas for thousands (e.g., $1,234,567).
+                Be precise and include all data fields available.
+                """
+                
+                try:
+                    # Make second LLM call for detailed text formatting
+                    text_response = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "You are a data formatter. Format data into clear, detailed text lists. Include ALL specific values."},
+                            {"role": "user", "content": text_summary_prompt}
+                        ],
+                        temperature=0.1,
+                        max_tokens=1500
+                    )
+                    text_summary = text_response.choices[0].message.content
+                    print(f"Generated text summary with {len(text_summary)} characters")
+                except Exception as e:
+                    print(f"Failed to generate text summary: {e}")
+                    text_summary = ""
+            
             # Build final response
             return {
                 'answer': answer,
+                'text_summary': text_summary,  # New field with detailed text data
                 'visualizations': visualizations,
                 'recommendations': result.get('recommendations', []),
                 'sql_query': main_sql,

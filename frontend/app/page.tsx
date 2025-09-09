@@ -25,6 +25,7 @@ export default function Dashboard() {
 
   const {
     analysis,
+    textSummary,
     visualizations,
     businessImpact,
     recommendations,
@@ -82,18 +83,24 @@ export default function Dashboard() {
     // Check for either analysis.answer (from backend) or analysis.summary
     const responseText = analysis?.answer || analysis?.summary;
     if (responseText && lastQuery && !isLoading) {
+      // Combine answer with text summary if available
+      let fullResponse = responseText;
+      if (textSummary) {
+        fullResponse = `${responseText}\n\n**Detailed Results:**\n${textSummary}`;
+      }
+      
       // Add AI response to chat
       setChatHistory(prev => {
         // Check if response already added
         const lastMessage = prev[prev.length - 1];
         if (lastMessage && lastMessage.role === "user" && lastMessage.content === lastQuery) {
-          return [...prev, { role: "assistant", content: responseText }];
+          return [...prev, { role: "assistant", content: fullResponse }];
         }
         return prev;
       });
       setLastQuery(""); // Clear to prevent re-adding
     }
-  }, [analysis, lastQuery, isLoading]);
+  }, [analysis, textSummary, lastQuery, isLoading]);
 
   // Export functionality
   const handleExportData = () => {

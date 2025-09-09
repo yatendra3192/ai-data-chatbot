@@ -3,6 +3,7 @@ import { analyzeData } from "@/lib/api/dataAnalysis";
 
 export function useDataAnalysis() {
   const [analysis, setAnalysis] = useState<any>(null);
+  const [textSummary, setTextSummary] = useState<string>("");
   const [visualizations, setVisualizations] = useState<any[]>([]);
   const [businessImpact, setBusinessImpact] = useState<any>(null);
   const [recommendations, setRecommendations] = useState<string[]>([]);
@@ -47,6 +48,10 @@ export function useDataAnalysis() {
                   console.log("[Stream] Answer received:", data.answer);
                   setAnalysis({ answer: data.answer, summary: data.answer });
                 }
+                if (data.text_summary) {
+                  console.log("[Stream] Text summary received:", data.text_summary);
+                  setTextSummary(data.text_summary);
+                }
                 if (data.visualizations) {
                   console.log("Received visualizations:", data.visualizations.length, "charts");
                   console.log("First chart type:", data.visualizations[0]?.type);
@@ -77,6 +82,7 @@ export function useDataAnalysis() {
 
   return {
     analysis,
+    textSummary,
     visualizations,
     businessImpact,
     recommendations,

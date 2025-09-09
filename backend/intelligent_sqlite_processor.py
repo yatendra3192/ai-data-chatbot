@@ -181,11 +181,12 @@ Output Format:
         conn.close()
         
         # Now that we have the actual data, ask the LLM to generate a proper answer
+        text_summary = ""
         if len(main_df) > 0:
             # Convert dataframe to a readable format for the LLM
             data_summary = main_df.head(10).to_dict('records')
             
-            # Create a new prompt with the actual data
+            # Create a new prompt with the actual data for brief answer
             answer_prompt = f"""
             User asked: {query}
             
@@ -194,6 +195,29 @@ Output Format:
             
             Please provide a natural language answer that includes the specific names and values from the data.
             Be concise and direct. Include the actual client names, product names, or values as appropriate.
+            """
+            
+            # Create a second prompt for detailed text summary
+            text_summary_prompt = f"""
+            User asked: {query}
+            
+            The SQL query returned this data:
+            {json.dumps(data_summary, indent=2)}
+            
+            Please format this data into a clear, readable text summary that lists all the details.
+            Format it like this:
+            
+            For order data, use:
+            1. Order ID: [ID] | Customer: [Name] | Amount: $[Amount] | Status: [Status] | Date: [Date]
+            2. Order ID: [ID] | Customer: [Name] | Amount: $[Amount] | Status: [Status] | Date: [Date]
+            
+            For product data, use:
+            1. Product: [Name] | Quantity: [Qty] | Revenue: $[Amount]
+            
+            For customer data, use:
+            1. Customer: [Name] | Total Revenue: $[Amount] | Orders: [Count]
+            
+            Include all rows from the data provided. Format numbers with commas for thousands.
             """
             
             try:
@@ -208,18 +232,34 @@ Output Format:
                     max_tokens=500
                 )
                 answer = answer_response.choices[0].message.content
+                
+                # Generate detailed text summary
+                text_summary_response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a data formatter. Format the data into a clear, readable text list with all details."},
+                        {"role": "user", "content": text_summary_prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=1500
+                )
+                text_summary = text_summary_response.choices[0].message.content
+                
             except Exception as e:
                 print(f"[ERROR] Failed to generate answer with data: {e}")
                 import traceback
                 traceback.print_exc()
                 # Fallback to original answer
                 answer = result.get('answer', 'No answer provided')
+                text_summary = ""
         else:
             answer = "No data found for this query."
+            text_summary = ""
         
         # Return the formatted answer (not the original LLM answer)
         return {
             'answer': answer,  # This now contains our formatted answer with actual client name
+            'text_summary': text_summary,  # New field with detailed text data
             'visualizations': visualizations,
             'recommendations': result.get('recommendations', []),
             'sql_query': result['sql_query'],

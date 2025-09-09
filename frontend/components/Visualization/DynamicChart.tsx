@@ -89,9 +89,9 @@ export function DynamicChart({ visualization }: DynamicChartProps) {
               data={pieData}
               cx="50%"
               cy="50%"
-              labelLine={false}
+              labelLine={true}
               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              outerRadius={80}
+              outerRadius={140}
               fill={color}
               dataKey="value"
               nameKey="name"
@@ -101,6 +101,7 @@ export function DynamicChart({ visualization }: DynamicChartProps) {
               ))}
             </Pie>
             <Tooltip />
+            <Legend />
           </PieChart>
         );
       
@@ -124,10 +125,10 @@ export function DynamicChart({ visualization }: DynamicChartProps) {
               data={doughnutData}
               cx="50%"
               cy="50%"
-              labelLine={false}
+              labelLine={true}
               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              innerRadius={40}
-              outerRadius={80}
+              innerRadius={70}
+              outerRadius={140}
               fill={color}
               dataKey="value"
               nameKey="name"
@@ -137,6 +138,7 @@ export function DynamicChart({ visualization }: DynamicChartProps) {
               ))}
             </Pie>
             <Tooltip />
+            <Legend />
           </PieChart>
         );
       
@@ -215,12 +217,12 @@ export function DynamicChart({ visualization }: DynamicChartProps) {
   };
   
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm">
-      <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
+    <div className="bg-white rounded-xl p-8 shadow-sm">
+      <h3 className="font-semibold text-gray-900 mb-2 text-lg">{title}</h3>
       {description && (
         <p className="text-sm text-gray-500 mb-4 italic">{description}</p>
       )}
-      <ResponsiveContainer width="100%" height={250}>
+      <ResponsiveContainer width="100%" height={500}>
         {renderChart()}
       </ResponsiveContainer>
     </div>
