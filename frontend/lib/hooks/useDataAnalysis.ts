@@ -10,9 +10,9 @@ export function useDataAnalysis() {
   const [error, setError] = useState<string | null>(null);
 
   // Load initial data on mount
-  useEffect(() => {
-    sendQuery("Load initial dashboard data");
-  }, []);
+  // useEffect(() => {
+  //   sendQuery("Load initial dashboard data");
+  // }, []);
 
   const sendQuery = useCallback(async (query: string, dataFile?: string) => {
     setIsLoading(true);
@@ -39,7 +39,14 @@ export function useDataAnalysis() {
                 const data = JSON.parse(line.slice(6));
                 console.log("[Stream] Received data with keys:", Object.keys(data));
                 
-                if (data.analysis) setAnalysis(data.analysis);
+                // Check for analysis or answer field from backend
+                if (data.analysis) {
+                  console.log("[Stream] Analysis received:", data.analysis);
+                  setAnalysis(data.analysis);
+                } else if (data.answer) {
+                  console.log("[Stream] Answer received:", data.answer);
+                  setAnalysis({ answer: data.answer, summary: data.answer });
+                }
                 if (data.visualizations) {
                   console.log("Received visualizations:", data.visualizations.length, "charts");
                   console.log("First chart type:", data.visualizations[0]?.type);

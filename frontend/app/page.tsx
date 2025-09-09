@@ -79,13 +79,15 @@ export default function Dashboard() {
   
   // Add response when analysis completes
   useEffect(() => {
-    if (analysis?.summary && lastQuery && !isLoading) {
+    // Check for either analysis.answer (from backend) or analysis.summary
+    const responseText = analysis?.answer || analysis?.summary;
+    if (responseText && lastQuery && !isLoading) {
       // Add AI response to chat
       setChatHistory(prev => {
         // Check if response already added
         const lastMessage = prev[prev.length - 1];
         if (lastMessage && lastMessage.role === "user" && lastMessage.content === lastQuery) {
-          return [...prev, { role: "assistant", content: analysis.summary }];
+          return [...prev, { role: "assistant", content: responseText }];
         }
         return prev;
       });

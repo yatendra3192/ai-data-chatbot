@@ -78,20 +78,23 @@ Important Instructions:
 4. Generate 4-5 different visualization types for the data
 5. Return results in the exact JSON format specified
 6. Use SQLite date functions (strftime) for date operations
+7. For pie and doughnut charts, ensure data has 'name' and 'value' columns
+8. When showing top N items, create bar, pie, and doughnut charts using the same data
+9. IMPORTANT: Your answer MUST include the actual names/values from query results (e.g., "The top client is Acme Corp with $1.2M in revenue")
 
 Output Format:
 {{
     "sql_query": "Your SQL query here",
-    "answer": "Natural language answer to the question",
+    "answer": "Natural language answer that includes specific names and values from the results",
     "visualizations": [
         {{
-            "type": "bar|pie|line|area|scatter|radar",
+            "type": "bar|pie|doughnut|line|area|scatter|radar",
             "title": "Descriptive title",
-            "sql_for_chart": "SQL query specifically for this chart's data",
+            "sql_for_chart": "SQL query specifically for this chart's data (must include column aliases matching xAxis/yAxis)",
             "chart_config": {{
-                "xAxis": "column_name",
-                "yAxis": "column_name",
-                "color": "#color_code"
+                "xAxis": "name",  // For pie/doughnut use "name" 
+                "yAxis": "value", // For pie/doughnut use "value"
+                "color": "#818CF8"
             }}
         }}
     ],
@@ -141,7 +144,9 @@ Output Format:
         conn = sqlite3.connect(DB_PATH)
         
         # Execute main query
+        print(f"[MAIN QUERY] Executing: {result['sql_query']}")
         main_df = pd.read_sql_query(result['sql_query'], conn)
+        print(f"[MAIN QUERY] Got {len(main_df)} rows")
         
         # Execute visualization queries and format data
         visualizations = []
@@ -175,18 +180,46 @@ Output Format:
         
         conn.close()
         
-        # Format the answer with actual data
+        # Now that we have the actual data, ask the LLM to generate a proper answer
         if len(main_df) > 0:
-            answer = result['answer']
-            # Add actual data points to answer
-            if 'top' in query.lower() or 'highest' in query.lower():
-                top_results = main_df.head(10).to_string(index=False)
-                answer += f"\n\nActual results:\n{top_results}"
+            # Convert dataframe to a readable format for the LLM
+            data_summary = main_df.head(10).to_dict('records')
+            
+            # Create a new prompt with the actual data
+            answer_prompt = f"""
+            User asked: {query}
+            
+            The SQL query returned this data:
+            {json.dumps(data_summary, indent=2)}
+            
+            Please provide a natural language answer that includes the specific names and values from the data.
+            Be concise and direct. Include the actual client names, product names, or values as appropriate.
+            """
+            
+            try:
+                # Ask the LLM to generate an answer based on the actual data
+                answer_response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a data analyst. Provide clear, concise answers using the actual data provided."},
+                        {"role": "user", "content": answer_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=500
+                )
+                answer = answer_response.choices[0].message.content
+            except Exception as e:
+                print(f"[ERROR] Failed to generate answer with data: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback to original answer
+                answer = result.get('answer', 'No answer provided')
         else:
             answer = "No data found for this query."
         
+        # Return the formatted answer (not the original LLM answer)
         return {
-            'answer': answer,
+            'answer': answer,  # This now contains our formatted answer with actual client name
             'visualizations': visualizations,
             'recommendations': result.get('recommendations', []),
             'sql_query': result['sql_query'],

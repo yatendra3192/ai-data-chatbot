@@ -32,6 +32,12 @@ const COLORS = ['#818CF8', '#A78BFA', '#C084FC', '#E879F9', '#F472B6', '#FB7185'
 export function DynamicChart({ visualization }: DynamicChartProps) {
   const { type, title, description, data, config = {} } = visualization;
   
+  // Log data for pie/doughnut charts
+  if (type === 'pie' || type === 'doughnut' || type === 'donut') {
+    console.log(`[DynamicChart] ${type} chart data:`, data);
+    console.log(`[DynamicChart] ${type} chart config:`, config);
+  }
+  
   // Default config values
   const xAxis = config.xAxis || 'name';
   const yAxis = config.yAxis || 'value';
@@ -65,19 +71,68 @@ export function DynamicChart({ visualization }: DynamicChartProps) {
         );
       
       case 'pie':
+        // For pie charts, find the numeric field to use as value
+        const pieData = data.map((item: any) => {
+          // Find the first numeric field that's not the name/label field
+          const valueKey = Object.keys(item).find(key => 
+            typeof item[key] === 'number' && key !== xAxis
+          ) || yAxis;
+          return {
+            name: item[xAxis] || item.name || item.productidname || Object.values(item)[0],
+            value: item[valueKey] || item[yAxis] || item.value || item.total_revenue || Object.values(item).find((v: any) => typeof v === 'number')
+          };
+        });
+        
         return (
           <PieChart>
             <Pie
-              data={data}
+              data={pieData}
               cx="50%"
               cy="50%"
               labelLine={false}
               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
               outerRadius={80}
               fill={color}
-              dataKey={yAxis}
+              dataKey="value"
+              nameKey="name"
             >
-              {data.map((entry, index) => (
+              {pieData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        );
+      
+      case 'doughnut':
+      case 'donut':
+        // For doughnut charts, find the numeric field to use as value
+        const doughnutData = data.map((item: any) => {
+          // Find the first numeric field that's not the name/label field
+          const valueKey = Object.keys(item).find(key => 
+            typeof item[key] === 'number' && key !== xAxis
+          ) || yAxis;
+          return {
+            name: item[xAxis] || item.name || item.productidname || Object.values(item)[0],
+            value: item[valueKey] || item[yAxis] || item.value || item.total_revenue || Object.values(item).find((v: any) => typeof v === 'number')
+          };
+        });
+        
+        return (
+          <PieChart>
+            <Pie
+              data={doughnutData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              innerRadius={40}
+              outerRadius={80}
+              fill={color}
+              dataKey="value"
+              nameKey="name"
+            >
+              {doughnutData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
               ))}
             </Pie>
