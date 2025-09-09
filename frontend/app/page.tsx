@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Layout/Header";
 import { AnalysisSummary } from "@/components/Analytics/AnalysisSummary";
 import { ChartGrid } from "@/components/Visualization/ChartGrid";
+import { TableView } from "@/components/Visualization/TableView";
 import { ChatInterface } from "@/components/Chat/ChatInterface";
 import { QueryExamples } from "@/components/UI/QueryExamples";
 import { ErrorMessage } from "@/components/UI/ErrorMessage";
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [queryHistory, setQueryHistory] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Processing your query...");
+  const [activeTab, setActiveTab] = useState<"chat" | "table">("chat");
 
   const {
     analysis,
@@ -29,6 +31,10 @@ export default function Dashboard() {
     visualizations,
     businessImpact,
     recommendations,
+    sqlQuery,
+    tableData,
+    rowCount,
+    executionTime,
     isLoading,
     error,
     sendQuery
@@ -193,37 +199,80 @@ export default function Dashboard() {
           />
         )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Analysis Summary */}
-          <div className="lg:col-span-2 space-y-8">
+        {/* Tab Navigation */}
+        <div className="flex space-x-1 mb-6 bg-white rounded-lg shadow-sm p-1">
+          <button
+            onClick={() => setActiveTab("chat")}
+            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+              activeTab === "chat"
+                ? "bg-purple-600 text-white"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            }`}
+          >
+            Chat & Visualizations
+          </button>
+          <button
+            onClick={() => setActiveTab("table")}
+            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+              activeTab === "table"
+                ? "bg-purple-600 text-white"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            }`}
+          >
+            Table View
+          </button>
+        </div>
+        
+        {/* Content based on active tab */}
+        {activeTab === "chat" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Analysis Summary */}
+            <div className="lg:col-span-2 space-y-8">
+              {isLoading ? (
+                <div className="bg-white rounded-lg shadow p-8">
+                  <LoadingSpinner message={loadingMessage} size="lg" />
+                </div>
+              ) : (
+                <>
+                  <AnalysisSummary 
+                    summary={analysis?.summary}
+                    recommendations={recommendations}
+                  />
+                  
+                  <ChartGrid 
+                    visualizations={visualizations}
+                    data={analysis?.metrics}
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Right Column - Chat Interface */}
+            <div className="lg:col-span-1">
+              <ChatInterface
+                onSendMessage={handleSendQuery}
+                chatHistory={chatHistory}
+                isLoading={isLoading}
+              />
+            </div>
+          </div>
+        ) : (
+          /* Table View Tab */
+          <div className="space-y-6">
             {isLoading ? (
               <div className="bg-white rounded-lg shadow p-8">
                 <LoadingSpinner message={loadingMessage} size="lg" />
               </div>
             ) : (
-              <>
-                <AnalysisSummary 
-                  summary={analysis?.summary}
-                  recommendations={recommendations}
-                />
-                
-                <ChartGrid 
-                  visualizations={visualizations}
-                  data={analysis?.metrics}
-                />
-              </>
+              <TableView
+                sqlQuery={sqlQuery}
+                data={tableData}
+                rowCount={rowCount}
+                executionTime={executionTime}
+              />
             )}
           </div>
-
-          {/* Right Column - Chat Interface */}
-          <div className="lg:col-span-1">
-            <ChatInterface
-              onSendMessage={handleSendQuery}
-              chatHistory={chatHistory}
-              isLoading={isLoading}
-            />
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );

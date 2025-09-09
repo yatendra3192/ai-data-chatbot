@@ -362,6 +362,23 @@ Return ONLY the JSON object, nothing else."""
                     print(f"Failed to generate text summary: {e}")
                     text_summary = ""
             
+            # Convert DataFrame to list of dictionaries for table view
+            table_data = []
+            if len(main_df) > 0:
+                # Clean up data types for JSON serialization
+                for _, row in main_df.head(1000).iterrows():  # Limit to 1000 rows for table
+                    record = {}
+                    for col, val in row.items():
+                        if pd.isna(val):
+                            record[col] = None
+                        elif isinstance(val, (pd.Timestamp, datetime)):
+                            record[col] = str(val)
+                        elif isinstance(val, (np.integer, np.floating)):
+                            record[col] = float(val)
+                        else:
+                            record[col] = val
+                    table_data.append(record)
+            
             # Build final response
             return {
                 'answer': answer,
@@ -369,6 +386,7 @@ Return ONLY the JSON object, nothing else."""
                 'visualizations': visualizations,
                 'recommendations': result.get('recommendations', []),
                 'sql_query': main_sql,
+                'table_data': table_data,  # Add table data for display
                 'row_count': len(main_df),
                 'execution_time': round(execution_time, 2),
                 'success': True
