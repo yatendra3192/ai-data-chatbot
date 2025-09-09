@@ -51,51 +51,74 @@ def get_database_schema():
     
     1. salesorder table (60,481 rows) - Orders/Sales Data:
        AVAILABLE COLUMNS:
-       - Id (TEXT PRIMARY KEY): Order record ID  
-       - ordernumber: Order number/ID (e.g., ORD-30741-T8V7)
-       - customeridname: Customer name
-       - totalamount: Total order amount (REAL)
-       - totaltax: Tax amount (REAL) ✓ NOW AVAILABLE
-       - createdon: Order creation date (TEXT) ✓ NOW AVAILABLE
-       - statuscode: Order status code (INTEGER)
-       - modifiedon: Last modified date (TEXT)
-       - billto_city: Billing city
-       - billto_country: Billing country/region
+       - Id (TEXT PRIMARY KEY): Sales Order ID (unique identifier)
+       - ordernumber: Order Number (e.g., ORD-30741-T8V7) - Main order identifier
+       - customeridname: Customer Name - Full customer name
+       - totalamount: Total Amount (REAL) - Complete order amount including tax
+       - totaltax: Total Tax (REAL) - Tax amount for the order ✓ NOW AVAILABLE
+       - createdon: Order creation date (TEXT) - When order was created ✓ NOW AVAILABLE
+       - statuscode: Order Status (INTEGER) - Order status code
+       - modifiedon: Modified On (TEXT) - Last modification date
+       - billto_city: Billing City - Customer's billing city
+       - billto_country: Billing Country - Customer's billing country/region
+       
+       COLUMN MEANINGS FROM DATA DICTIONARY:
+       - statuscode: Order processing status (active/inactive/completed)
+       - totalamount: Complete order value including all charges and tax
+       - totaltax: Total tax charged on the order
+       - ordernumber: Primary business identifier for orders
+       - customeridname: Full name of the customer/account
        
        NOTE: Tax information is NOW AVAILABLE. Use 'totaltax' column for tax amounts.
     
     2. quote table (141,461 rows) - Quote/Proposal Data:
        AVAILABLE COLUMNS:
-       - Id (TEXT PRIMARY KEY): Quote record ID
-       - quotenumber: Quote number (unique identifier)
-       - name: Quote name/title
-       - customeridname: Customer name
-       - totalamount: Total quote amount (REAL)
-       - statuscode: Quote status (INTEGER)
-       - modifiedon: Last modified date (TEXT)
+       - Id (TEXT PRIMARY KEY): Record ID - Unique quote identifier
+       - quotenumber: Quote Number - Primary business identifier for quotes
+       - name: Quote Name - Title/description of the quote
+       - customeridname: Customer Name - Full customer/account name
+       - totalamount: Total Amount (REAL) - Complete quote value including all charges
+       - statuscode: Quote Status (INTEGER) - Quote processing status
+       - modifiedon: Modified On (TEXT) - Last modification date
+       
+       COLUMN MEANINGS FROM DATA DICTIONARY:
+       - statuscode: Quote processing state (draft/active/won/lost)
+       - totalamount: Complete quote value including line items
+       - quotenumber: Primary identifier used in business operations
+       - name: Descriptive title for the quote
+       - customeridname: Full name of customer/account
        
        NOTE: Tax, discount, and other financial columns are NOT in current database.
     
     3. quotedetail table (1,237,446 rows) - Quote Line Items:
        AVAILABLE COLUMNS:
-       - Id (TEXT PRIMARY KEY): Line item ID
-       - quoteid: Parent quote ID (foreign key to quote table)
-       - productidname: Product name
-       - quantity: Quantity ordered (REAL)
-       - priceperunit: Price per unit (REAL)
-       - extendedamount: Line total (quantity × price) (REAL)
-       - producttypecode: Product type code (INTEGER)
+       - Id (TEXT PRIMARY KEY): Record ID - Unique line item identifier
+       - quoteid: Quote ID - Links to parent quote (foreign key to quote table)
+       - productidname: Product Name - Name of product/service being quoted
+       - quantity: Quantity (REAL) - Number of units being quoted
+       - priceperunit: Price Per Unit (REAL) - Unit price for the product/service
+       - extendedamount: Extended Amount (REAL) - Line total (quantity × price)
+       - producttypecode: Product Type (INTEGER) - Category/type of product
+       
+       COLUMN MEANINGS FROM DATA DICTIONARY:
+       - quoteid: Foreign key linking line items to parent quote
+       - productidname: Full name of the product or service
+       - quantity: Number of units ordered for this line item
+       - priceperunit: Unit price before any discounts
+       - extendedamount: Total amount for this line item (quantity × unit price)
+       - producttypecode: Classification code for product type
        
        NOTE: Tax, discount columns are NOT in current database.
     
     IMPORTANT NOTES:
-    - Tax information is NOT available in any table (no totaltax columns)
-    - The totalamount field contains the complete amount
+    - Tax information IS AVAILABLE in salesorder table (totaltax column)
+    - The totalamount field contains the complete amount including tax
     - Order ID: Use 'ordernumber' field (e.g., ORD-30741-T8V7)
+    - Quote ID: Use 'quotenumber' field for business reference
     - SQLite date functions: strftime('%Y-%m', modifiedon) for year-month
     - Use LIMIT for SQLite (not TOP like SQL Server)
     - All amounts are in REAL (floating point) format
-    - When asked about tax, explain it's not available in the current database
+    - JOINs: Can join quote and quotedetail tables on quote.Id = quotedetail.quoteid
     """
 
 def validate_and_fix_sql(sql: str) -> str:
