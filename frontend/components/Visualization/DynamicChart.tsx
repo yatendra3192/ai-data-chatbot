@@ -90,7 +90,7 @@ export function DynamicChart({ visualization }: DynamicChartProps) {
               cx="50%"
               cy="50%"
               labelLine={true}
-              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
               outerRadius={140}
               fill={color}
               dataKey="value"
@@ -126,7 +126,7 @@ export function DynamicChart({ visualization }: DynamicChartProps) {
               cx="50%"
               cy="50%"
               labelLine={true}
-              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
               innerRadius={70}
               outerRadius={140}
               fill={color}
