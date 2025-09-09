@@ -14,10 +14,11 @@ from intelligent_sqlite_processor_v2 import process_sqlite_query, test_sqlite_co
 
 app = FastAPI()
 
-# Enable CORS
+# Enable CORS - allow Railway domains and localhost
+allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allowed_origins + ["*"],  # Allow all origins in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
