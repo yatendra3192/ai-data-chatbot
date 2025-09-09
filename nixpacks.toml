@@ -1,17 +1,13 @@
-# nixpacks.toml
+# nixpacks.toml - Backend only deployment
 [phases.setup]
-nixPkgs = ["python311", "nodejs_18", "gcc"]
+nixPkgs = ["python311"]
 
 [phases.install]
 cmds = [
     "python -m venv /opt/venv",
     ". /opt/venv/bin/activate && pip install --upgrade pip",
-    ". /opt/venv/bin/activate && pip install -r requirements.txt",
-    "cd frontend && npm ci --include=dev"
+    ". /opt/venv/bin/activate && pip install -r requirements.txt"
 ]
-
-[phases.build]
-cmds = ["cd frontend && npm run build"]
 
 [start]
 cmd = ". /opt/venv/bin/activate && cd backend && python -m uvicorn main_sqlite:app --host 0.0.0.0 --port $PORT"

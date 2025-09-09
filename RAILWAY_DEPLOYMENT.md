@@ -34,16 +34,19 @@ You need to set these environment variables in your Railway project:
 
 ## Deployment Configuration
 
-### Backend (Python/FastAPI)
+### Backend API Only Deployment
+To avoid build timeouts, the Railway deployment is configured for **backend only**:
 - **Framework**: FastAPI with uvicorn
 - **Python Version**: 3.11
 - **Start Command**: Configured in nixpacks.toml
 - **Port**: Uses Railway's PORT environment variable
 
-### Frontend (Next.js)
-- **Framework**: Next.js 15.5.2
-- **Build**: Production build with Turbopack
-- **Output**: Standalone mode
+### Frontend Deployment Options
+The frontend can be deployed separately on:
+- **Vercel** (recommended for Next.js)
+- **Netlify**
+- **Another Railway service**
+- Or run locally while using the Railway backend API
 
 ### Database
 - **Type**: SQLite (embedded)
