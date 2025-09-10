@@ -114,12 +114,21 @@ async def get_datasets_info():
         total_rows = 0
         
         for table_name, table_info in stats.items():
-            if isinstance(table_info, dict):
+            if isinstance(table_info, dict) and 'row_count' in table_info:
+                # Get column information for the table
+                import sqlite3
+                conn = sqlite3.connect(Path(__file__).parent / "database" / "crm_analytics.db")
+                cursor = conn.cursor()
+                cursor.execute(f"PRAGMA table_info({table_name})")
+                columns_info = cursor.fetchall()
+                column_names = [col[1] for col in columns_info] if columns_info else []
+                conn.close()
+                
                 datasets.append({
                     "name": table_name,
                     "rows": table_info['row_count'],
-                    "columns": len(table_info['columns']),
-                    "sample_columns": table_info['columns'][:5]  # First 5 columns as sample
+                    "columns": len(column_names),
+                    "sample_columns": column_names[:5]  # First 5 columns as sample
                 })
                 total_rows += table_info['row_count']
         
