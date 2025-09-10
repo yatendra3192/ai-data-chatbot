@@ -12,6 +12,7 @@ from typing import List, Dict, Any
 import os
 from pathlib import Path
 from intelligent_sqlite_processor import process_sqlite_query, test_sqlite_connection, get_database_stats
+from init_sample_database import create_sample_database
 
 app = FastAPI()
 
@@ -27,11 +28,18 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     query: str
 
-# Check database connection on startup
+# Initialize database if it doesn't exist
 print("=" * 60)
 print("[STARTUP] Unified AI Data Analysis Application")
 print("=" * 60)
 
+# Check if database exists, if not create sample database
+db_path = Path(__file__).parent / "database" / "crm_analytics.db"
+if not db_path.exists():
+    print("[INFO] Database not found. Creating sample database...")
+    create_sample_database()
+
+# Check database connection
 db_status = test_sqlite_connection()
 if db_status['connected']:
     print("[SUCCESS] Connected to SQLite database")
@@ -43,7 +51,6 @@ if db_status['connected']:
             print(f"   Database size: {info:.2f} MB")
 else:
     print(f"[ERROR] Database connection failed: {db_status['error']}")
-    print("   Please run: python database/import_csv_to_sqlite.py")
 
 print("=" * 60)
 

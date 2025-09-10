@@ -45,5 +45,5 @@ ENV NODE_ENV=production
 # Expose port (Railway will set PORT env var)
 EXPOSE 8000
 
-# Start the unified application
-CMD ["python", "-m", "uvicorn", "backend.main_unified:app", "--host", "0.0.0.0", "--port", "8000"]
+# Initialize database on first run (if needed) and start the application
+CMD ["sh", "-c", "cd backend && python init_sample_database.py && cd .. && python -m uvicorn backend.main_unified:app --host 0.0.0.0 --port ${PORT:-8000}"]
