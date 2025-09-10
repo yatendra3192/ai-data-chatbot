@@ -15,12 +15,24 @@ def main():
     print("Starting AI Data Chatbot")
     print("=" * 60)
     
+    # Handle volume mount - Railway mounts at /app/backend/database
+    volume_path = Path("/app/backend/database")
+    local_db_path = Path("/railway/backend/database")
+    
+    # If volume exists and local doesn't, create symlink
+    if volume_path.exists() and not local_db_path.exists():
+        print(f"Creating symlink from {local_db_path} to {volume_path}")
+        os.makedirs(local_db_path.parent, exist_ok=True)
+        if local_db_path.exists():
+            os.rmdir(local_db_path)
+        os.symlink(volume_path, local_db_path)
+        print("✓ Volume linked successfully")
+    
     # Check if database exists
-    # Always use current directory structure
     db_path = Path("database/crm_analytics.db")
     
     # Check if we're using a volume (persistent storage)
-    volume_mounted = os.path.exists("/app/backend/database")
+    volume_mounted = volume_path.exists()
     if volume_mounted:
         print("✓ Volume detected - Database will persist between deployments")
     

@@ -166,8 +166,11 @@ async def test_query(request: QueryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Serve Next.js frontend
-# Path to the built Next.js app
-FRONTEND_PATH = Path(__file__).parent.parent / "frontend"
+# Path to the built Next.js app - handle both local and Docker
+if os.path.exists("/railway"):
+    FRONTEND_PATH = Path("/railway/frontend")
+else:
+    FRONTEND_PATH = Path(__file__).parent.parent / "frontend"
 NEXT_BUILD_PATH = FRONTEND_PATH / ".next"
 NEXT_STATIC_PATH = NEXT_BUILD_PATH / "static"
 PUBLIC_PATH = FRONTEND_PATH / "public"

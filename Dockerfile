@@ -16,7 +16,8 @@ RUN npm run build
 # Final stage - Python backend with frontend
 FROM python:3.11-slim
 
-WORKDIR /app
+# Create a different working directory to avoid conflicts
+WORKDIR /railway
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -27,7 +28,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code EXCEPT the database directory
+# Copy backend code to /railway/backend
 COPY backend/*.py ./backend/
 COPY backend/database/*.py ./backend/database/
 
@@ -36,12 +37,19 @@ COPY --from=frontend-builder /app/frontend/out ./frontend/out
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
 COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
 
+# Create database directory structure
+RUN mkdir -p /railway/backend/database
+
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV NODE_ENV=production
+ENV PYTHONPATH=/railway
 
-# Expose port (Railway will set PORT env var)
+# Expose port
 EXPOSE 8000
 
-# Start with a simple Python command
-CMD ["python", "-c", "import os; os.chdir('/app/backend'); import startup; startup.main()"]
+# Run from /railway/backend directory
+WORKDIR /railway/backend
+
+# Start the application
+CMD ["python", "startup.py"]
