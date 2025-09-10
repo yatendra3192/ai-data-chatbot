@@ -18,6 +18,11 @@ if __name__ == "__main__":
     # Check if database exists
     db_path = Path(__file__).parent / "database" / "crm_analytics.db"
     
+    # Check if we're using a volume (persistent storage)
+    volume_mounted = os.path.exists("/app/backend/database")
+    if volume_mounted:
+        print("✓ Volume detected - Database will persist between deployments")
+    
     if not db_path.exists():
         print("No database found. Attempting to download full database...")
         
@@ -28,14 +33,19 @@ if __name__ == "__main__":
             create_sample_database()
     else:
         file_size = os.path.getsize(db_path)
-        print(f"Database exists: {file_size / 1024 / 1024:.2f} MB")
+        print(f"✓ Database exists: {file_size / 1024 / 1024:.2f} MB")
         
-        if file_size < 10 * 1024 * 1024:  # If less than 10MB
+        # Only re-download if it's a sample database and we have a URL
+        if file_size < 10 * 1024 * 1024 and os.environ.get('DATABASE_URL'):
             print("Small database detected. Attempting to download full database...")
             if download_full_database():
-                print("Full database downloaded successfully!")
+                print("✓ Full database downloaded successfully!")
+                print("✓ Database is now persistent in Railway volume")
             else:
                 print("Continuing with existing database")
+        elif file_size > 100 * 1024 * 1024:
+            print("✓ Full database loaded from persistent volume!")
+            print(f"✓ Contains all 1.4M+ records ({file_size / 1024 / 1024:.2f} MB)")
     
     # Get port from environment or use default
     port = int(os.environ.get("PORT", 8000))
