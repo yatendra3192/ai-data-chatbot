@@ -42,8 +42,11 @@ RUN mkdir -p /app/backend/database
 ENV PYTHONUNBUFFERED=1
 ENV NODE_ENV=production
 
+# Set working directory for backend
+WORKDIR /app/backend
+
 # Expose port (Railway will set PORT env var)
 EXPOSE 8000
 
-# Initialize database on first run (if needed) and start the application
-CMD ["sh", "-c", "cd backend && python init_sample_database.py && cd .. && python -m uvicorn backend.main_unified:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start the application with startup script
+CMD ["python", "startup.py"]
