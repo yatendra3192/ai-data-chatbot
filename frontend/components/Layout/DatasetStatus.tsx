@@ -23,7 +23,7 @@ export function DatasetStatus() {
 
   const fetchDatasetInfo = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/datasets-info");
+      const response = await fetch("/api/datasets-info");
       const data = await response.json();
       setDatasets(data);
     } catch (error) {

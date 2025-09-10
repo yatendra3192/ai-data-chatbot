@@ -1,4 +1,19 @@
-# Simple Dockerfile for Railway - Backend API only
+# Multi-stage build for unified frontend + backend deployment
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Copy frontend package files
+COPY frontend/package*.json ./
+RUN npm ci
+
+# Copy frontend source
+COPY frontend/ ./
+
+# Build the frontend (static export)
+RUN npm run build
+
+# Final stage - Python backend with frontend
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -15,20 +30,20 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ ./backend/
 
+# Copy frontend build from builder stage
+COPY --from=frontend-builder /app/frontend/out ./frontend/out
+COPY --from=frontend-builder /app/frontend/public ./frontend/public
+COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
+
 # Create database directory
 RUN mkdir -p /app/backend/database
 
-# Set working directory
-WORKDIR /app/backend
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV NODE_ENV=production
 
-# Create a simple startup script inline
-RUN echo '#!/bin/bash\n\
-echo "Starting Backend API Server..."\n\
-python -m uvicorn main_sqlite:app --host 0.0.0.0 --port ${PORT:-8000}' > /app/start.sh && \
-    chmod +x /app/start.sh
-
-# Expose port
+# Expose port (Railway will set PORT env var)
 EXPOSE 8000
 
-# Run the application
-CMD ["/app/start.sh"]
+# Start the unified application
+CMD ["python", "-m", "uvicorn", "backend.main_unified:app", "--host", "0.0.0.0", "--port", "8000"]
