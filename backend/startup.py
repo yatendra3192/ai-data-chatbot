@@ -10,19 +10,14 @@ from pathlib import Path
 from init_sample_database import create_sample_database
 from download_database import download_full_database
 
-if __name__ == "__main__":
+def main():
     print("=" * 60)
     print("Starting AI Data Chatbot")
     print("=" * 60)
     
     # Check if database exists
-    # Handle both local and Docker paths
-    if os.path.exists("/app/backend"):
-        # Running in Docker
-        db_path = Path("/app/backend/database/crm_analytics.db")
-    else:
-        # Running locally
-        db_path = Path(__file__).parent / "database" / "crm_analytics.db"
+    # Always use current directory structure
+    db_path = Path("database/crm_analytics.db")
     
     # Check if we're using a volume (persistent storage)
     volume_mounted = os.path.exists("/app/backend/database")
@@ -64,13 +59,12 @@ if __name__ == "__main__":
     print(f"Starting server on port {port}...")
     
     # Start the server
-    # Change to backend directory for module imports
-    if os.path.exists("/app/backend"):
-        os.chdir("/app/backend")
-    
     uvicorn.run(
         "main_unified:app",
         host="0.0.0.0",
         port=port,
         log_level="info"
     )
+
+if __name__ == "__main__":
+    main()

@@ -27,8 +27,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
-COPY backend/ ./backend/
+# Copy backend code EXCEPT the database directory
+COPY backend/*.py ./backend/
+COPY backend/database/*.py ./backend/database/
 
 # Copy frontend build from builder stage
 COPY --from=frontend-builder /app/frontend/out ./frontend/out
@@ -39,11 +40,8 @@ COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
 ENV PYTHONUNBUFFERED=1
 ENV NODE_ENV=production
 
-# Set working directory to /app
-WORKDIR /app
-
 # Expose port (Railway will set PORT env var)
 EXPOSE 8000
 
-# Start the application from /app directory
-CMD ["python", "backend/startup.py"]
+# Start with a simple Python command
+CMD ["python", "-c", "import os; os.chdir('/app/backend'); import startup; startup.main()"]
