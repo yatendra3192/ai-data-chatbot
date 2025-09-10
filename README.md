@@ -2,9 +2,9 @@
 
 An intelligent data analysis chatbot that uses OpenAI's GPT-4 to dynamically analyze data from SQLite database and generate multiple visualizations. Features a purple gradient chat interface with real-time data analysis on 1.4+ million rows of CRM data.
 
-**Repository:** https://github.com/yatendra3192/ai-data-chatbot
-
-**Last Updated:** September 8, 2025
+**Repository:** https://github.com/yatendra3192/ai-data-chatbot  
+**Live Demo:** https://adaptable-liberation.up.railway.app  
+**Last Updated:** September 10, 2025
 
 ## Features
 
@@ -25,18 +25,26 @@ An intelligent data analysis chatbot that uses OpenAI's GPT-4 to dynamically ana
 
 ## Current Status
 
-✅ **Working**:
+✅ **Production Deployment**:
+- Successfully deployed on Railway Cloud Platform
+- Live at: https://adaptable-liberation.up.railway.app
+- Unified backend serving both API and frontend
+- Full 465MB SQLite database with 1.4M+ rows deployed
+
+✅ **Working Features**:
 - SQLite database with 1.4M+ rows (465MB)
 - Backend server with SQL query generation
 - Frontend displaying dataset status
 - Multiple chart generation (4-5 per query)
 - SSE streaming for real-time updates
+- Unified deployment (backend serves frontend)
 
-⚠️ **Recent Fixes**:
-- Switched from GPT-5 to GPT-4-turbo (GPT-5 not available)
-- Fixed frontend endpoint from `/api/analyze` to `/analyze`
-- Added JSON extraction from LLM responses
-- Reduced SQLite chunk size to avoid "too many variables" error
+⚠️ **Recent Fixes (Sept 10, 2025)**:
+- Fixed streaming response type/status mismatch in frontend
+- Resolved Railway deployment volume mount issues
+- Moved application to /railway directory to avoid conflicts
+- Fixed frontend data display handling for nested response structure
+- Successfully deployed full database to production
 
 ## Database Details
 
@@ -109,23 +117,38 @@ python import_csv_to_sqlite.py
 
 ## Running the Application
 
-### Backend (SQLite version)
+### Local Development
 
+#### Backend (Unified Server)
 ```bash
 cd ai-data-chatbot/backend
-python -m uvicorn main_sqlite:app --host 0.0.0.0 --port 8000
+python -m uvicorn main_unified:app --host 0.0.0.0 --port 8000
 ```
 
-API available at: `http://localhost:8000`
+Application available at: `http://localhost:8000`
 
-### Frontend
-
+#### Frontend Development Mode
 ```bash
 cd ai-data-chatbot/frontend
 npm run dev
 ```
 
 Dashboard available at: `http://localhost:3000`
+
+### Production Deployment (Railway)
+
+The application is configured for automatic deployment to Railway:
+
+1. **Automatic Deployment**: Pushes to `main` branch trigger automatic deployment
+2. **Unified Server**: Backend serves both API and frontend (port 8000)
+3. **Database**: SQLite database included in deployment
+4. **Live URL**: https://adaptable-liberation.up.railway.app
+
+#### Railway Configuration
+- **Dockerfile**: Uses multi-stage build for optimized deployment
+- **Environment**: PORT variable automatically set by Railway
+- **Database Path**: `/railway/backend/database/crm_analytics.db`
+- **Working Directory**: `/railway` (to avoid volume mount conflicts)
 
 ## Usage
 
@@ -149,15 +172,18 @@ Try these natural language queries:
 
 ### Backend
 - **`intelligent_sqlite_processor.py`**: GPT-4 query processor
-- **`main_sqlite.py`**: FastAPI server with SSE
+- **`main_unified.py`**: Unified FastAPI server (serves API + frontend)
+- **`main_sqlite.py`**: Development-only API server
 - **`database/crm_analytics.db`**: SQLite database (465MB)
 - **`database/import_csv_to_sqlite.py`**: CSV importer
+- **`download_database.py`**: Database downloader for external sources
 
 ### Frontend
-- **`lib/api/dataAnalysis.ts`**: API client (uses `/analyze`)
-- **`lib/hooks/useDataAnalysis.ts`**: SSE stream handler
+- **`lib/api/dataAnalysis.ts`**: API client (uses `/api/analyze`)
+- **`lib/hooks/useDataAnalysis.ts`**: SSE stream handler (fixed for type/status)
 - **`components/Layout/DatasetStatus.tsx`**: Dataset info display
-- **`components/Dashboard/ChartRenderer.tsx`**: Dynamic charts
+- **`components/Visualization/ChartGrid.tsx`**: Dynamic chart renderer
+- **`components/Chat/ChatInterface.tsx`**: Chat UI component
 
 ## Technical Details
 
