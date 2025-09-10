@@ -10,8 +10,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ ./backend/
 
+# Copy data files for database initialization (if they exist)
+# These will be ignored if not present
+COPY Data\ Dictionary\ Orders.txt* ./
+COPY DD_Quote.txt* ./
+COPY DD_quotedetail.txt* ./
+
 # Set working directory to backend
 WORKDIR /app/backend
+
+# Initialize database on container start
+RUN python init_database.py
 
 # Expose port
 EXPOSE 8000
