@@ -10,7 +10,7 @@ import json
 import asyncio
 from typing import List, Dict, Any
 import os
-from intelligent_sqlite_processor_v2 import process_sqlite_query, test_sqlite_connection, get_database_stats
+from intelligent_sqlite_processor import process_sqlite_query, test_sqlite_connection, get_database_stats
 
 app = FastAPI()
 

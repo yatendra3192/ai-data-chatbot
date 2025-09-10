@@ -10,11 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ ./backend/
 
-# Copy data files for database initialization (if they exist)
-# These will be ignored if not present
-COPY Data\ Dictionary\ Orders.txt* ./
-COPY DD_Quote.txt* ./
-COPY DD_quotedetail.txt* ./
+# Data files are not included - will use sample data instead
 
 # Set working directory to backend
 WORKDIR /app/backend
