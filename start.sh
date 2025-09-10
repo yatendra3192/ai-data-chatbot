@@ -7,25 +7,25 @@ echo "Starting AI Data Chatbot Application..."
 export NODE_ENV=production
 export PYTHONUNBUFFERED=1
 
-# Check if database exists, if not create it
-if [ ! -f "./backend/database/crm_analytics.db" ]; then
-    echo "Database not found. Initializing..."
-    cd backend/database
-    python import_csv_to_sqlite.py
-    cd ../..
-fi
+# Use Railway's PORT or default to 8000
+PORT=${PORT:-8000}
+echo "Using PORT: $PORT"
 
 # Start the backend server
-echo "Starting backend server on port ${PORT:-8000}..."
-cd backend
-python -m uvicorn main_sqlite:app --host 0.0.0.0 --port ${PORT:-8000} &
+echo "Starting backend server..."
+cd /app/backend
+python -m uvicorn main_sqlite:app --host 0.0.0.0 --port $PORT &
 BACKEND_PID=$!
 
-# Start the frontend server
+# Give backend time to start
+sleep 5
+
+# Start the frontend server on port 3000
 echo "Starting frontend server..."
-cd ../frontend
-npm start &
+cd /app/frontend
+PORT=3000 npm start &
 FRONTEND_PID=$!
 
-# Wait for both processes
+# Keep the container running
+echo "Application started. Backend on port $PORT, Frontend on port 3000"
 wait $BACKEND_PID $FRONTEND_PID
