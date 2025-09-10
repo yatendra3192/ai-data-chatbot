@@ -35,18 +35,15 @@ COPY --from=frontend-builder /app/frontend/out ./frontend/out
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
 COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
 
-# Create database directory
-RUN mkdir -p /app/backend/database
-
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV NODE_ENV=production
 
-# Set working directory for backend
-WORKDIR /app/backend
+# Set working directory to /app
+WORKDIR /app
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 8000
 
-# Start the application with startup script
-CMD ["python", "startup.py"]
+# Start the application from /app directory
+CMD ["python", "backend/startup.py"]
