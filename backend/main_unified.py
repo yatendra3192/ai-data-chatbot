@@ -78,12 +78,15 @@ async def analyze_data(request: QueryRequest):
                 request.query
             )
             
-            if result["success"]:
-                # Send the complete result
-                yield f"data: {json.dumps({'type': 'complete', 'data': result})}\n\n"
-            else:
+            # Check if there's an error in the result
+            if 'error' in result:
                 # Send error
                 yield f"data: {json.dumps({'type': 'error', 'error': result.get('error', 'Unknown error')})}\n\n"
+            else:
+                # Add success flag for compatibility
+                result['success'] = True
+                # Send the complete result
+                yield f"data: {json.dumps({'type': 'complete', 'data': result})}\n\n"
                 
         except Exception as e:
             print(f"[ERROR] Query processing failed: {str(e)}")
