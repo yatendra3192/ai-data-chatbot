@@ -44,49 +44,50 @@ export function useDataAnalysis() {
                 const data = JSON.parse(line.slice(6));
                 console.log("[Stream] Received data with keys:", Object.keys(data));
                 
-                // Check for complete status - this contains all the data
-                if (data.status === 'complete') {
+                // Check for complete type - backend sends type not status
+                if (data.type === 'complete' && data.data) {
                   console.log("[Stream] Complete response received");
+                  const responseData = data.data; // The actual data is nested
                   
                   // Process all fields from the complete response
-                  if (data.answer) {
-                    console.log("[Stream] Answer received:", data.answer);
-                    setAnalysis({ answer: data.answer, summary: data.answer });
+                  if (responseData.answer) {
+                    console.log("[Stream] Answer received:", responseData.answer);
+                    setAnalysis({ answer: responseData.answer, summary: responseData.answer });
                   }
-                  if (data.text_summary) {
+                  if (responseData.text_summary) {
                     console.log("[Stream] Text summary received");
-                    setTextSummary(data.text_summary);
+                    setTextSummary(responseData.text_summary);
                   }
-                  if (data.visualizations) {
-                    console.log("Received visualizations:", data.visualizations.length, "charts");
-                    setVisualizations(data.visualizations);
+                  if (responseData.visualizations) {
+                    console.log("Received visualizations:", responseData.visualizations.length, "charts");
+                    setVisualizations(responseData.visualizations);
                   }
-                  if (data.sql_query) {
+                  if (responseData.sql_query) {
                     console.log("[Stream] SQL query received");
-                    setSqlQuery(data.sql_query);
+                    setSqlQuery(responseData.sql_query);
                   }
-                  if (data.table_data) {
-                    console.log("[Stream] Table data received:", data.table_data.length, "rows");
-                    setTableData(data.table_data);
+                  if (responseData.table_data) {
+                    console.log("[Stream] Table data received:", responseData.table_data.length, "rows");
+                    setTableData(responseData.table_data);
                   }
-                  if (data.row_count !== undefined) {
-                    console.log("[Stream] Row count:", data.row_count);
-                    setRowCount(data.row_count);
+                  if (responseData.row_count !== undefined) {
+                    console.log("[Stream] Row count:", responseData.row_count);
+                    setRowCount(responseData.row_count);
                   }
-                  if (data.execution_time !== undefined) {
-                    console.log("[Stream] Execution time:", data.execution_time);
-                    setExecutionTime(data.execution_time);
+                  if (responseData.execution_time !== undefined) {
+                    console.log("[Stream] Execution time:", responseData.execution_time);
+                    setExecutionTime(responseData.execution_time);
                   }
-                  if (data.recommendations) {
-                    setRecommendations(data.recommendations);
+                  if (responseData.recommendations) {
+                    setRecommendations(responseData.recommendations);
                   }
-                  if (data.business_impact) {
-                    setBusinessImpact(data.business_impact);
+                  if (responseData.business_impact) {
+                    setBusinessImpact(responseData.business_impact);
                   }
                 }
                 
-                // Handle other status messages (processing, error)
-                if (data.status === 'error') {
+                // Handle error type
+                if (data.type === 'error') {
                   console.error("[Stream] Error:", data.error);
                   setError(data.error);
                 }
