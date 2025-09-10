@@ -50,7 +50,7 @@ def download_full_database():
             temp_path = str(db_path) + ".download"
             
             print("Starting download...")
-            response = requests.get(download_url, stream=True)
+            response = requests.get(download_url, stream=True, timeout=300)  # 5 minute timeout
             
             # Check if we got HTML instead of the file
             content_type = response.headers.get('content-type', '')
@@ -95,10 +95,42 @@ def download_full_database():
             shutil.move(temp_path, db_path)
             
         else:
-            # For non-Google Drive URLs, use simple download
+            # For non-Google Drive URLs, use requests for better control
+            print("Using direct download method...")
             temp_path = str(db_path) + ".download"
-            urllib.request.urlretrieve(db_url, temp_path)
-            shutil.move(temp_path, db_path)
+            
+            try:
+                response = requests.get(db_url, stream=True, timeout=300)  # 5 minute timeout
+                response.raise_for_status()  # Raise error for bad status codes
+                
+                total_size = int(response.headers.get('content-length', 0))
+                block_size = 8192
+                downloaded = 0
+                
+                print(f"Downloading {total_size / 1024 / 1024:.2f} MB...")
+                
+                with open(temp_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=block_size):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if total_size > 0:
+                                percent = (downloaded * 100.0 / total_size)
+                                if downloaded % (block_size * 100) == 0:  # Print every 100 blocks
+                                    print(f"Download progress: {percent:.1f}%")
+                
+                shutil.move(temp_path, db_path)
+                
+            except requests.exceptions.Timeout:
+                print("ERROR: Download timed out after 5 minutes")
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                return False
+            except requests.exceptions.RequestException as e:
+                print(f"ERROR: Download failed: {e}")
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                return False
         
         print(f"Database downloaded successfully!")
         file_size = os.path.getsize(db_path)

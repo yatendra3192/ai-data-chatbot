@@ -27,8 +27,13 @@ if __name__ == "__main__":
         print("No database found. Attempting to download full database...")
         
         # Try to download full database first
-        if not download_full_database():
-            # If download fails, create sample database
+        try:
+            if not download_full_database():
+                # If download fails, create sample database
+                print("Download failed. Creating sample database as fallback...")
+                create_sample_database()
+        except Exception as e:
+            print(f"ERROR during download: {e}")
             print("Creating sample database as fallback...")
             create_sample_database()
     else:
