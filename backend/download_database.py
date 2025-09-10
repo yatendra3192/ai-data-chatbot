@@ -6,6 +6,7 @@ import os
 import urllib.request
 import shutil
 from pathlib import Path
+import requests
 
 def download_full_database():
     """Download the full database from a URL"""
@@ -32,26 +33,94 @@ def download_full_database():
         # Create database directory if it doesn't exist
         os.makedirs(db_path.parent, exist_ok=True)
         
-        # Download with progress
-        def download_progress(block_num, block_size, total_size):
-            downloaded = block_num * block_size
-            percent = min(downloaded * 100.0 / total_size, 100)
-            print(f"Download progress: {percent:.1f}%", end='\r')
+        # For Google Drive, we need to handle large file warning
+        if 'drive.google.com' in db_url:
+            print("Detected Google Drive URL, using special download method...")
+            
+            # Extract file ID from URL
+            if 'id=' in db_url:
+                file_id = db_url.split('id=')[1].split('&')[0]
+            else:
+                file_id = db_url.split('/d/')[1].split('/')[0]
+            
+            # Try direct download with confirm parameter
+            download_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
+            
+            # Use requests for better handling
+            temp_path = str(db_path) + ".download"
+            
+            print("Starting download...")
+            response = requests.get(download_url, stream=True)
+            
+            # Check if we got HTML instead of the file
+            content_type = response.headers.get('content-type', '')
+            if 'text/html' in content_type:
+                print("Google Drive requires confirmation for large files")
+                # Try alternative method
+                session = requests.Session()
+                response = session.get(f"https://drive.google.com/uc?export=download&id={file_id}", stream=True)
+                
+                # Look for confirmation token in response
+                for key, value in response.cookies.items():
+                    if key.startswith('download_warning'):
+                        params = {'id': file_id, 'confirm': value}
+                        response = session.get("https://drive.google.com/uc?export=download", 
+                                              params=params, stream=True)
+                        break
+            
+            # Download the file
+            total_size = int(response.headers.get('content-length', 0))
+            block_size = 8192
+            downloaded = 0
+            
+            with open(temp_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=block_size):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            percent = (downloaded * 100.0 / total_size)
+                            print(f"Download progress: {percent:.1f}%", end='\r')
+            
+            # Verify the download
+            file_size = os.path.getsize(temp_path)
+            print(f"\nDownloaded file size: {file_size / 1024 / 1024:.2f} MB")
+            
+            if file_size < 1024 * 1024:  # Less than 1MB, probably got HTML
+                print("ERROR: Downloaded file too small, likely got HTML page instead")
+                os.remove(temp_path)
+                return False
+            
+            # Move to final location
+            shutil.move(temp_path, db_path)
+            
+        else:
+            # For non-Google Drive URLs, use simple download
+            temp_path = str(db_path) + ".download"
+            urllib.request.urlretrieve(db_url, temp_path)
+            shutil.move(temp_path, db_path)
         
-        # Download the file
-        temp_path = str(db_path) + ".download"
-        urllib.request.urlretrieve(db_url, temp_path, download_progress)
-        
-        # Move to final location
-        shutil.move(temp_path, db_path)
-        
-        print(f"\nDatabase downloaded successfully!")
+        print(f"Database downloaded successfully!")
         file_size = os.path.getsize(db_path)
         print(f"Database size: {file_size / 1024 / 1024:.2f} MB")
-        return True
+        
+        # Verify it's a valid SQLite database
+        import sqlite3
+        try:
+            conn = sqlite3.connect(db_path)
+            conn.execute("SELECT 1")
+            conn.close()
+            print("✓ Database validation successful")
+            return True
+        except Exception as e:
+            print(f"ERROR: Downloaded file is not a valid SQLite database: {e}")
+            os.remove(db_path)
+            return False
         
     except Exception as e:
         print(f"Error downloading database: {e}")
+        if os.path.exists(str(db_path) + ".download"):
+            os.remove(str(db_path) + ".download")
         return False
 
 if __name__ == "__main__":
