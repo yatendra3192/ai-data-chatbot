@@ -1,5 +1,6 @@
 """
 Unified FastAPI backend that serves both API and Next.js frontend
+Version: 1.0.1 - Fixed query processing and error handling
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,7 +59,12 @@ print("=" * 60)
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "database": db_status}
+    return {
+        "status": "healthy", 
+        "version": "1.0.1",
+        "database": db_status,
+        "message": "Fixed query processing and error handling"
+    }
 
 @app.post("/api/analyze")
 async def analyze_data(request: QueryRequest):
