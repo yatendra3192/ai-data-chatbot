@@ -14,6 +14,15 @@ export function TableView({ sqlQuery, data, rowCount, executionTime }: TableView
   const [copiedSql, setCopiedSql] = useState(false);
   const [showFullQuery, setShowFullQuery] = useState(false);
   
+  // Debug logging
+  console.log("[TableView] Props received:", {
+    sqlQuery: sqlQuery ? `${sqlQuery.substring(0, 50)}...` : "No query",
+    dataLength: data ? data.length : 0,
+    rowCount,
+    executionTime,
+    firstRow: data && data.length > 0 ? data[0] : null
+  });
+  
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlQuery);
     setCopiedSql(true);
@@ -129,7 +138,7 @@ export function TableView({ sqlQuery, data, rowCount, executionTime }: TableView
           </div>
         ) : (
           <div className="text-center py-12 text-gray-500">
-            No data available. Run a query to see results.
+            {sqlQuery ? "No results returned for this query." : "No data available. Run a query to see results."}
           </div>
         )}
       </div>

@@ -10,6 +10,7 @@ import os
 from typing import Dict, Any, List
 import sqlite3
 from datetime import datetime
+import time
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -64,6 +65,8 @@ def get_database_schema():
 
 def process_sqlite_query(query: str) -> Dict[str, Any]:
     """Process natural language query and generate SQL with visualizations"""
+    
+    start_time = time.time()
     
     schema_info = get_database_schema()
     
@@ -256,6 +259,26 @@ Output Format:
             answer = "No data found for this query."
             text_summary = ""
         
+        # Convert DataFrame to list of dictionaries for table view
+        table_data = []
+        if len(main_df) > 0:
+            # Clean up data types for JSON serialization
+            for _, row in main_df.iterrows():
+                record = {}
+                for col, val in row.items():
+                    if pd.isna(val):
+                        record[col] = None
+                    elif isinstance(val, (np.integer, np.floating)):
+                        record[col] = float(val) if pd.api.types.is_float_dtype(type(val)) else int(val)
+                    elif isinstance(val, np.bool_):
+                        record[col] = bool(val)
+                    else:
+                        record[col] = str(val)
+                table_data.append(record)
+        
+        # Calculate execution time
+        execution_time = time.time() - start_time
+        
         # Return the formatted answer (not the original LLM answer)
         return {
             'answer': answer,  # This now contains our formatted answer with actual client name
@@ -263,15 +286,22 @@ Output Format:
             'visualizations': visualizations,
             'recommendations': result.get('recommendations', []),
             'sql_query': result['sql_query'],
-            'row_count': len(main_df)
+            'table_data': table_data,  # Add table data for display
+            'row_count': len(main_df),
+            'execution_time': round(execution_time, 3)
         }
         
     except Exception as e:
         print(f"Error processing SQLite query: {e}")
         return {
             'answer': f"Error processing query: {str(e)}",
+            'text_summary': '',
             'visualizations': [],
             'recommendations': [],
+            'sql_query': '',
+            'table_data': [],
+            'row_count': 0,
+            'execution_time': 0,
             'error': str(e)
         }
 
