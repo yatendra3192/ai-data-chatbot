@@ -58,33 +58,33 @@ export function DatasetStatus() {
   const datasetCount = datasets.datasets ? datasets.datasets.length : 0;
 
   return (
-    <div className="flex items-center gap-6">
-      <div className="flex items-center gap-2">
-        <Database className="w-4 h-4 text-purple-400" />
-        <span className="text-sm text-gray-300">
+    <div className="flex items-center gap-4 text-sm">
+      <div className="flex items-center gap-1.5">
+        <Database className="w-4 h-4 text-purple-500" />
+        <span className="text-gray-600">
           {datasetCount} Datasets
         </span>
       </div>
       
-      <div className="flex items-center gap-2">
-        <HardDrive className="w-4 h-4 text-green-400" />
-        <span className="text-sm text-gray-300">
-          {datasets.backend || 'SQLite'}
+      <div className="flex items-center gap-1.5">
+        <HardDrive className="w-4 h-4 text-green-500" />
+        <span className="text-gray-600">
+          {datasets.backend || 'SQLite Database'}
         </span>
       </div>
       
-      <div className="flex items-center gap-2">
-        <Activity className="w-4 h-4 text-blue-400" />
-        <span className="text-sm text-gray-300">
+      <div className="flex items-center gap-1.5">
+        <Activity className="w-4 h-4 text-blue-500" />
+        <span className="text-gray-600">
           {totalRows.toLocaleString()} rows loaded
         </span>
       </div>
 
-      <div className="hidden md:flex items-center gap-4">
+      <div className="hidden lg:flex items-center gap-3">
         {datasets.datasets.map((dataset) => (
-          <div key={dataset.name} className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-xs text-gray-400">
+          <div key={dataset.name} className="flex items-center gap-1.5 text-xs">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+            <span className="text-gray-500">
               {dataset.name}: {(dataset.rows / 1000).toFixed(0)}K rows
             </span>
           </div>

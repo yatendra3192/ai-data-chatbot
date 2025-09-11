@@ -6,11 +6,9 @@ import { AnalysisSummary } from "@/components/Analytics/AnalysisSummary";
 import { ChartGrid } from "@/components/Visualization/ChartGrid";
 import { TableView } from "@/components/Visualization/TableView";
 import { ChatInterface } from "@/components/Chat/ChatInterface";
-import { QueryExamples } from "@/components/UI/QueryExamples";
 import { ErrorMessage } from "@/components/UI/ErrorMessage";
 import { LoadingSpinner } from "@/components/UI/LoadingSpinner";
 import { useDataAnalysis } from "@/lib/hooks/useDataAnalysis";
-import { History, Download, RefreshCw } from "lucide-react";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -21,7 +19,6 @@ export default function Dashboard() {
   const [chatHistory, setChatHistory] = useState<Array<{role: string, content: string}>>([]);
   const [lastQuery, setLastQuery] = useState("");
   const [queryHistory, setQueryHistory] = useState<string[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Processing your query...");
   const [activeTab, setActiveTab] = useState<"chat" | "table">("chat");
 
@@ -108,28 +105,6 @@ export default function Dashboard() {
     }
   }, [analysis, textSummary, lastQuery, isLoading]);
 
-  // Export functionality
-  const handleExportData = () => {
-    if (!analysis || visualizations.length === 0) return;
-    
-    const exportData = {
-      timestamp: new Date().toISOString(),
-      query: chatHistory[chatHistory.length - 2]?.content || "",
-      analysis: analysis,
-      visualizations: visualizations,
-      recommendations: recommendations
-    };
-    
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `data-analysis-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   const handleRetry = () => {
     if (lastQuery) {
@@ -142,53 +117,6 @@ export default function Dashboard() {
       <Header stats={stats} />
       
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Action Bar */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <QueryExamples onSelectExample={handleSendQuery} />
-            
-            {/* Query History */}
-            <div className="relative">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <History size={18} />
-                <span className="text-sm font-medium">History</span>
-              </button>
-              
-              {showHistory && queryHistory.length > 0 && (
-                <div className="absolute top-full mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-64 overflow-y-auto">
-                  <div className="p-2">
-                    {queryHistory.map((query, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          handleSendQuery(query);
-                          setShowHistory(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors"
-                      >
-                        {query}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Export Button */}
-          {visualizations.length > 0 && (
-            <button
-              onClick={handleExportData}
-              className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Download size={18} />
-              <span className="text-sm font-medium">Export Results</span>
-            </button>
-          )}
-        </div>
         
         {/* Error Display */}
         {error && (
@@ -199,35 +127,27 @@ export default function Dashboard() {
           />
         )}
         
-        {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-6 bg-white rounded-lg shadow-sm p-1">
-          <button
-            onClick={() => setActiveTab("chat")}
-            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
-              activeTab === "chat"
-                ? "bg-purple-600 text-white"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            }`}
-          >
-            Chat & Visualizations
-          </button>
-          <button
-            onClick={() => setActiveTab("table")}
-            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
-              activeTab === "table"
-                ? "bg-purple-600 text-white"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            }`}
-          >
-            Table View
-          </button>
-        </div>
-        
         {/* Content based on active tab */}
         {activeTab === "chat" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Analysis Summary */}
-            <div className="lg:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Analysis Summary with Tab Navigation */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Tab Navigation */}
+              <div className="flex space-x-1 bg-white rounded-lg shadow-sm p-1">
+                <button
+                  onClick={() => setActiveTab("chat")}
+                  className="flex-1 px-4 py-2 rounded-md font-medium transition-colors bg-purple-600 text-white"
+                >
+                  Chat & Visualizations
+                </button>
+                <button
+                  onClick={() => setActiveTab("table")}
+                  className="flex-1 px-4 py-2 rounded-md font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  Table View
+                </button>
+              </div>
+
               {isLoading ? (
                 <div className="bg-white rounded-lg shadow p-8">
                   <LoadingSpinner message={loadingMessage} size="lg" />
@@ -249,16 +169,35 @@ export default function Dashboard() {
 
             {/* Right Column - Chat Interface */}
             <div className="lg:col-span-1">
-              <ChatInterface
-                onSendMessage={handleSendQuery}
-                chatHistory={chatHistory}
-                isLoading={isLoading}
-              />
+              <div className="sticky top-4">
+                <ChatInterface
+                  onSendMessage={handleSendQuery}
+                  chatHistory={chatHistory}
+                  isLoading={isLoading}
+                  queryHistory={queryHistory}
+                />
+              </div>
             </div>
           </div>
         ) : (
           /* Table View Tab */
           <div className="space-y-6">
+            {/* Tab Navigation */}
+            <div className="flex space-x-1 bg-white rounded-lg shadow-sm p-1">
+              <button
+                onClick={() => setActiveTab("chat")}
+                className="flex-1 px-4 py-2 rounded-md font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              >
+                Chat & Visualizations
+              </button>
+              <button
+                onClick={() => setActiveTab("table")}
+                className="flex-1 px-4 py-2 rounded-md font-medium transition-colors bg-purple-600 text-white"
+              >
+                Table View
+              </button>
+            </div>
+
             {isLoading ? (
               <div className="bg-white rounded-lg shadow p-8">
                 <LoadingSpinner message={loadingMessage} size="lg" />
