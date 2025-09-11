@@ -13,7 +13,13 @@ from datetime import datetime
 import time
 
 # Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    print("[WARNING] OPENAI_API_KEY not found in environment variables")
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
+    
+client = OpenAI(api_key=api_key)
+print(f"[INFO] OpenAI client initialized with API key: ...{api_key[-4:] if api_key else 'None'}")
 
 # SQLite database path
 DB_PATH = "database/crm_analytics.db"
@@ -108,40 +114,76 @@ Output Format:
     user_prompt = f"User Query: {query}\n\nGenerate SQL queries and multiple visualizations."
     
     try:
-        # Try GPT-4 (GPT-5 might not be available)
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4-turbo-preview",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.3,
-                max_tokens=3000
-            )
-        except Exception as e:
-            # Fallback to GPT-3.5
-            print(f"GPT-4 failed, using GPT-3.5: {e}")
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.3,
-                max_tokens=3000
-            )
+        # Try GPT-4 with retry logic
+        response = None
+        max_retries = 2
+        retry_count = 0
+        
+        while retry_count < max_retries and response is None:
+            try:
+                print(f"[API] Attempting GPT-4 call (attempt {retry_count + 1}/{max_retries})")
+                response = client.chat.completions.create(
+                    model="gpt-4-turbo-preview",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=3000,
+                    timeout=30  # Add timeout
+                )
+                print("[API] GPT-4 call successful")
+            except Exception as e:
+                print(f"[API] GPT-4 attempt {retry_count + 1} failed: {str(e)[:200]}")
+                retry_count += 1
+                if retry_count >= max_retries:
+                    # Fallback to GPT-3.5
+                    print("[API] All GPT-4 attempts failed, trying GPT-3.5")
+                    try:
+                        response = client.chat.completions.create(
+                            model="gpt-3.5-turbo",
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_prompt}
+                            ],
+                            temperature=0.3,
+                            max_tokens=3000,
+                            timeout=30
+                        )
+                        print("[API] GPT-3.5 call successful")
+                    except Exception as e2:
+                        print(f"[API] GPT-3.5 also failed: {str(e2)[:200]}")
+                        raise Exception(f"Both GPT-4 and GPT-3.5 failed. Last error: {str(e2)}")
+                else:
+                    time.sleep(1)  # Wait 1 second before retry
         
         # Get response content
-        raw_content = response.choices[0].message.content
+        if not response or not response.choices or not response.choices[0].message.content:
+            raise ValueError("API returned empty response")
+            
+        raw_content = response.choices[0].message.content.strip()
+        print(f"[DEBUG] Raw API response length: {len(raw_content)}")
+        
+        if not raw_content:
+            raise ValueError("API returned empty content")
         
         # Try to extract JSON from the response
         import re
         json_match = re.search(r'\{.*\}', raw_content, re.DOTALL)
         if json_match:
-            result = json.loads(json_match.group())
+            try:
+                result = json.loads(json_match.group())
+            except json.JSONDecodeError as e:
+                print(f"[ERROR] Failed to parse extracted JSON: {e}")
+                print(f"[ERROR] Extracted content: {json_match.group()[:500]}...")
+                raise ValueError(f"Invalid JSON in API response: {e}")
         else:
-            result = json.loads(raw_content)
+            try:
+                result = json.loads(raw_content)
+            except json.JSONDecodeError as e:
+                print(f"[ERROR] Failed to parse raw response as JSON: {e}")
+                print(f"[ERROR] Raw content: {raw_content[:500]}...")
+                raise ValueError(f"API did not return valid JSON: {e}")
         
         # Connect to SQLite database
         conn = sqlite3.connect(DB_PATH)
