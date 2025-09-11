@@ -30,6 +30,7 @@ def main():
     
     # Check if database exists
     db_path = Path("database/crm_analytics.db")
+    download_marker = Path("database/.full_db_downloaded")
     
     # Check if we're using a volume (persistent storage)
     volume_mounted = volume_path.exists()
@@ -53,17 +54,30 @@ def main():
         file_size = os.path.getsize(db_path)
         print(f"✓ Database exists: {file_size / 1024 / 1024:.2f} MB")
         
-        # Only re-download if it's a sample database and we have a URL
-        if file_size < 10 * 1024 * 1024 and os.environ.get('DATABASE_URL'):
+        # Check if we have a marker indicating full database was downloaded
+        if download_marker.exists():
+            print("✓ Full database marker found - skipping re-download")
+            print(f"✓ Using existing database ({file_size / 1024 / 1024:.2f} MB)")
+        # Check if this is the full database (>400MB)
+        elif file_size > 400 * 1024 * 1024:  # 400MB threshold for full database
+            print("✓ Full database already loaded from persistent volume!")
+            print(f"✓ Contains all 1.4M+ records ({file_size / 1024 / 1024:.2f} MB)")
+            print("✓ Skipping re-download - database is complete")
+            # Create marker file to prevent future re-downloads
+            download_marker.touch()
+        # Only re-download if it's a small/sample database and we have a URL
+        elif file_size < 10 * 1024 * 1024 and os.environ.get('DATABASE_URL'):
             print("Small database detected. Attempting to download full database...")
             if download_full_database():
                 print("✓ Full database downloaded successfully!")
                 print("✓ Database is now persistent in Railway volume")
+                # Create marker file to prevent future re-downloads
+                download_marker.touch()
             else:
                 print("Continuing with existing database")
-        elif file_size > 100 * 1024 * 1024:
-            print("✓ Full database loaded from persistent volume!")
-            print(f"✓ Contains all 1.4M+ records ({file_size / 1024 / 1024:.2f} MB)")
+        else:
+            print(f"✓ Using existing database ({file_size / 1024 / 1024:.2f} MB)")
+            print("✓ Database will persist in Railway volume")
     
     # Get port from environment or use default
     port = int(os.environ.get("PORT", 8000))
