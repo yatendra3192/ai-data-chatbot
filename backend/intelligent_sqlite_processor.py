@@ -25,20 +25,92 @@ print(f"[INFO] OpenAI client initialized with API key: ...{api_key[-4:] if api_k
 # SQLite database path
 DB_PATH = "database/crm_analytics.db"
 
+# Data dictionary mappings for salesorder table
+STATUS_CODE_MAPPING = {
+    0: "New", 1: "In Progress", 2: "Pending", 3: "Complete", 4: "Partial",
+    5: "Invoiced", 6: "Cancelled", 7: "Active", 8: "Confirmed",
+    9: "Packing Slip", 10: "Picked", 11: "Partially Picked",
+    12: "Partially Packed", 13: "Shipped", 14: "Partially Shipped",
+    15: "Partially Invoiced", 16: "Draft"
+}
+
+STATE_CODE_MAPPING = {
+    0: "Active", 1: "Closed", 2: "Draft", 4: "On Hold"
+}
+
+PRIORITY_CODE_MAPPING = {
+    0: "Low", 1: "Normal", 2: "High", 3: "Urgent"
+}
+
+SHIPPING_METHOD_MAPPING = {
+    0: "Air", 1: "Road", 2: "Sea", 3: "UPS", 4: "Postal Mail",
+    5: "Full Load", 6: "Will Call", 7: "NA"
+}
+
 def get_database_schema():
     """Get the database schema for the LLM context"""
     return """
     Database Schema (SQLite):
     
-    1. salesorder table (60,481 rows):
-       - Id (TEXT PRIMARY KEY)
-       - customeridname: Customer name
-       - totalamount: Order total amount (REAL)
-       - statuscode: Order status (INTEGER)
-       - modifiedon: Last modified date (TEXT)
-       - billto_city: Billing city
-       - billto_country: Billing country
-       - ordernumber: Order number
+    1. salesorder table (60,481 rows) - DETAILED COLUMN DICTIONARY:
+       Core Fields:
+       - Id (TEXT PRIMARY KEY): Sales Order ID
+       - ordernumber: Order Number (unique identifier)
+       - name: Order Name/Description
+       - description: Order Description
+       
+       Status Fields (IMPORTANT - Use these mappings):
+       - statecode: Order State (0=Active, 1=Closed, 2=Draft, 4=On hold)
+       - statuscode: Order Status
+         * 0=New, 1=In Progress, 2=Pending, 3=Complete, 4=Partial
+         * 5=Invoiced, 6=Cancelled, 7=Active, 8=Confirmed
+         * 9=Packing Slip, 10=Picked, 11=Partially Picked
+         * 12=Partially Packed, 13=Shipped, 14=Partially Shipped
+         * 15=Partially Invoiced, 16=Draft
+       
+       Customer Information:
+       - customerid: Customer ID
+       - customeridname: Customer Name (use this for customer analysis)
+       - eht_custponumber: Customer PO Number
+       - new_customerreferenceorder: Customer Reference Order
+       
+       Financial Fields:
+       - totalamount: Total Order Amount
+       - totalamount_base: Total Amount (Base Currency)
+       - totallineitemamount: Total Line Item Amount
+       - totaldiscountamount: Total Discount Amount
+       - totaltax: Total Tax
+       - totalamountlessfreight: Total Amount Less Freight
+       
+       Shipping Information:
+       - shippingmethodcode: Shipping Method (0=Air, 1=Road, 2=Sea, 3=UPS, 4=Postal Mail, 5=Full Load, 6=Will Call, 7=NA)
+       - shipto_city: Shipping City
+       - shipto_country: Shipping Country
+       - shipto_stateorprovince: Shipping State/Province
+       - shipto_postalcode: Shipping Postal Code
+       - requestdeliveryby: Requested Delivery Date
+       
+       Billing Information:
+       - billto_city: Billing City
+       - billto_country: Billing Country
+       - billto_postalcode: Billing Postal Code
+       
+       Order Details:
+       - prioritycode: Order Priority (0=Low, 1=Normal, 2=High, 3=Urgent)
+       - quoteid: Related Quote ID
+       - quoteidname: Related Quote Name
+       - opportunityid: Related Opportunity ID
+       - opportunityidname: Related Opportunity Name
+       
+       Dates:
+       - modifiedon: Last Modified Date
+       - SinkCreatedOn: Record Created Date
+       - SinkModifiedOn: Record Modified Date
+       
+       Other Important Fields:
+       - eht_projectname: Project Name
+       - exchangerate: Exchange Rate
+       - transactioncurrencyidname: Transaction Currency Name
     
     2. quote table (141,461 rows):
        - Id (TEXT PRIMARY KEY)
@@ -49,7 +121,7 @@ def get_database_schema():
        - modifiedon: Last modified date (TEXT)
        - quotenumber: Quote number
     
-    3. quotedetail table (580,000 rows):
+    3. quotedetail table (1,237,446 rows):
        - Id (TEXT PRIMARY KEY)
        - quoteid: Foreign key to quote table
        - productidname: Product name
@@ -63,11 +135,12 @@ def get_database_schema():
     - Use strftime('%Y', modifiedon) for year extraction
     - Use date(modifiedon) for date comparisons
     
-    Available indexes for optimization:
-    - Customer name indexes on salesorder and quote tables
-    - Amount indexes on all tables
-    - Date indexes on salesorder and quote tables
-    - Product and quote indexes on quotedetail table
+    IMPORTANT Query Guidelines:
+    - When asked about order status, use the statuscode mappings above
+    - For customer analysis, use customeridname field
+    - For financial analysis, use totalamount field
+    - For shipping analysis, use shippingmethodcode with mappings
+    - For priority analysis, use prioritycode with mappings
     """
 
 def process_sqlite_query(query: str, use_high_reasoning: bool = False) -> Dict[str, Any]:
@@ -98,7 +171,15 @@ Important Instructions:
 6. Use SQLite date functions (strftime) for date operations
 7. For pie and doughnut charts, ensure data has 'name' and 'value' columns
 8. When showing top N items, create bar, pie, and doughnut charts using the same data
-9. IMPORTANT: Your answer MUST include the actual names/values from query results (e.g., "The top client is Acme Corp with $1.2M in revenue")
+9. IMPORTANT: Your answer MUST include the actual names/values from query results
+10. USE CASE statements to decode status/priority/shipping codes for human-readable output:
+    Example: CASE statuscode 
+             WHEN 0 THEN 'New' 
+             WHEN 1 THEN 'In Progress' 
+             WHEN 3 THEN 'Complete'
+             WHEN 6 THEN 'Cancelled' 
+             ELSE 'Other' END as status_name
+11. When analyzing orders by status, priority, or shipping method, use the mappings provided
 
 Output Format:
 {{
