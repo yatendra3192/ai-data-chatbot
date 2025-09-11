@@ -1,6 +1,7 @@
 """
 Intelligent SQLite Query Processor using GPT-5
 Generates SQL queries for better performance on large datasets
+Updated to use GPT-5 with new responses API
 """
 import pandas as pd
 import numpy as np
@@ -69,10 +70,18 @@ def get_database_schema():
     - Product and quote indexes on quotedetail table
     """
 
-def process_sqlite_query(query: str) -> Dict[str, Any]:
-    """Process natural language query and generate SQL with visualizations"""
+def process_sqlite_query(query: str, use_high_reasoning: bool = False) -> Dict[str, Any]:
+    """Process natural language query and generate SQL with visualizations
+    
+    Args:
+        query: Natural language query from user
+        use_high_reasoning: If True, uses GPT-5 with high reasoning for complex queries
+    """
     
     start_time = time.time()
+    
+    # Determine reasoning effort based on query complexity
+    reasoning_effort = "high" if use_high_reasoning or "complex" in query.lower() else "medium"
     
     schema_info = get_database_schema()
     
@@ -114,34 +123,37 @@ Output Format:
     user_prompt = f"User Query: {query}\n\nGenerate SQL queries and multiple visualizations."
     
     try:
-        # Try GPT-4 with retry logic
+        # Try GPT-5 with new responses API
         response = None
         max_retries = 2
         retry_count = 0
         
+        # Combine system and user prompts for GPT-5
+        combined_prompt = f"{system_prompt}\n\n{user_prompt}"
+        
         while retry_count < max_retries and response is None:
             try:
-                print(f"[API] Attempting GPT-4 call (attempt {retry_count + 1}/{max_retries})")
-                response = client.chat.completions.create(
-                    model="gpt-4-turbo-preview",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.3,
-                    max_tokens=3000,
-                    timeout=30  # Add timeout
+                print(f"[API] Attempting GPT-5 call (attempt {retry_count + 1}/{max_retries})")
+                response = client.responses.create(
+                    model="gpt-5",
+                    input=combined_prompt,
+                    reasoning={
+                        "effort": reasoning_effort  # Dynamic based on query complexity
+                    },
+                    text={
+                        "verbosity": "medium"  # Medium verbosity for detailed SQL and visualizations
+                    }
                 )
-                print("[API] GPT-4 call successful")
+                print("[API] GPT-5 call successful")
             except Exception as e:
-                print(f"[API] GPT-4 attempt {retry_count + 1} failed: {str(e)[:200]}")
+                print(f"[API] GPT-5 attempt {retry_count + 1} failed: {str(e)[:200]}")
                 retry_count += 1
                 if retry_count >= max_retries:
-                    # Fallback to GPT-3.5
-                    print("[API] All GPT-4 attempts failed, trying GPT-3.5")
+                    # Fallback to GPT-4 with chat completions
+                    print("[API] All GPT-5 attempts failed, trying GPT-4")
                     try:
                         response = client.chat.completions.create(
-                            model="gpt-3.5-turbo",
+                            model="gpt-4-turbo-preview",
                             messages=[
                                 {"role": "system", "content": system_prompt},
                                 {"role": "user", "content": user_prompt}
@@ -150,18 +162,43 @@ Output Format:
                             max_tokens=3000,
                             timeout=30
                         )
-                        print("[API] GPT-3.5 call successful")
+                        print("[API] GPT-4 fallback successful")
+                        # Mark this as a chat completion response for later handling
+                        response._is_chat_completion = True
                     except Exception as e2:
-                        print(f"[API] GPT-3.5 also failed: {str(e2)[:200]}")
-                        raise Exception(f"Both GPT-4 and GPT-3.5 failed. Last error: {str(e2)}")
+                        print(f"[API] GPT-4 also failed: {str(e2)[:200]}")
+                        # Final fallback to GPT-3.5
+                        try:
+                            response = client.chat.completions.create(
+                                model="gpt-3.5-turbo",
+                                messages=[
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": user_prompt}
+                                ],
+                                temperature=0.3,
+                                max_tokens=3000,
+                                timeout=30
+                            )
+                            print("[API] GPT-3.5 fallback successful")
+                            response._is_chat_completion = True
+                        except Exception as e3:
+                            print(f"[API] All models failed. Last error: {str(e3)[:200]}")
+                            raise Exception(f"All models (GPT-5, GPT-4, GPT-3.5) failed. Last error: {str(e3)}")
                 else:
                     time.sleep(1)  # Wait 1 second before retry
         
-        # Get response content
-        if not response or not response.choices or not response.choices[0].message.content:
-            raise ValueError("API returned empty response")
+        # Get response content based on API type
+        if hasattr(response, '_is_chat_completion') and response._is_chat_completion:
+            # Handle chat completion response (GPT-4/GPT-3.5 fallback)
+            if not response or not response.choices or not response.choices[0].message.content:
+                raise ValueError("API returned empty response")
+            raw_content = response.choices[0].message.content.strip()
+        else:
+            # Handle GPT-5 responses API
+            if not response or not hasattr(response, 'output_text'):
+                raise ValueError("GPT-5 API returned empty response")
+            raw_content = response.output_text.strip()
             
-        raw_content = response.choices[0].message.content.strip()
         print(f"[DEBUG] Raw API response length: {len(raw_content)}")
         
         if not raw_content:
