@@ -52,6 +52,8 @@ def get_database_schema():
     return """
     Database Schema (SQLite):
     
+    CRITICAL: The shippingmethodcode column EXISTS in salesorder table! Use it directly!
+    
     1. salesorder table (60,481 rows) - DETAILED COLUMN DICTIONARY:
        Core Fields:
        - Id (TEXT PRIMARY KEY): Sales Order ID
@@ -78,6 +80,12 @@ def get_database_schema():
        - totalamount: Total Order Amount
        - totalamount_base: Total Amount (Base Currency)
        - totallineitemamount: Total Line Item Amount
+       
+       Shipping Information (IMPORTANT - Column exists!):
+       - shippingmethodcode: Shipping Method Code
+         * 0=Air, 1=Road, 2=Sea, 3=UPS, 4=Postal Mail
+         * 5=Full Load, 6=Will Call, 7=NA
+         USE THIS COLUMN DIRECTLY - DO NOT use CASE statements to simulate it!
        - totaldiscountamount: Total Discount Amount
        - totaltax: Total Tax
        - totalamountlessfreight: Total Amount Less Freight
@@ -172,14 +180,25 @@ Important Instructions:
 7. For pie and doughnut charts, ensure data has 'name' and 'value' columns
 8. When showing top N items, create bar, pie, and doughnut charts using the same data
 9. IMPORTANT: Your answer MUST include the actual names/values from query results
-10. USE CASE statements to decode status/priority/shipping codes for human-readable output:
+10. USE CASE statements to decode status/priority codes for human-readable output:
     Example: CASE statuscode 
              WHEN 0 THEN 'New' 
              WHEN 1 THEN 'In Progress' 
              WHEN 3 THEN 'Complete'
              WHEN 6 THEN 'Cancelled' 
              ELSE 'Other' END as status_name
-11. When analyzing orders by status, priority, or shipping method, use the mappings provided
+11. For shipping method analysis, use this EXACT pattern:
+    CORRECT: SELECT 
+               CASE shippingmethodcode 
+                 WHEN 0 THEN 'Air' WHEN 1 THEN 'Road' WHEN 2 THEN 'Sea' 
+                 WHEN 3 THEN 'UPS' WHEN 4 THEN 'Postal Mail' WHEN 5 THEN 'Full Load'
+                 WHEN 6 THEN 'Will Call' WHEN 7 THEN 'NA' ELSE 'Unknown'
+               END as shipping_method,
+               COUNT(*) as count
+             FROM salesorder 
+             GROUP BY shippingmethodcode
+    WRONG: Creating CTEs with VALUES clauses or complex JOINs
+12. The shippingmethodcode column EXISTS! Never try to work around it!
 
 Output Format:
 {{
@@ -316,7 +335,16 @@ Output Format:
         for viz in result.get('visualizations', []):
             try:
                 # Execute SQL for this specific visualization
-                viz_df = pd.read_sql_query(viz['sql_for_chart'], conn)
+                chart_sql = viz.get('sql_for_chart', '')
+                print(f"[CHART SQL] Executing: {chart_sql}")
+                
+                # Check if the SQL query is valid
+                if not chart_sql or chart_sql.strip() == '':
+                    print(f"[WARNING] Empty chart SQL for visualization: {viz.get('title', 'Unknown')}")
+                    continue
+                    
+                viz_df = pd.read_sql_query(chart_sql, conn)
+                print(f"[CHART SQL] Got {len(viz_df)} rows for chart: {viz.get('title', 'Unknown')}")
                 
                 # Format data for frontend
                 chart_data = viz_df.to_dict('records')
@@ -339,7 +367,10 @@ Output Format:
                 })
                 
             except Exception as e:
-                print(f"Error executing chart SQL: {e}")
+                print(f"[ERROR] Error executing chart SQL for '{viz.get('title', 'Unknown')}': {e}")
+                print(f"[ERROR] Failed SQL was: {viz.get('sql_for_chart', 'No SQL provided')}")
+                # Continue with other visualizations instead of failing completely
+                continue
         
         conn.close()
         
@@ -540,4 +571,6 @@ if __name__ == "__main__":
         result = process_sqlite_query("What are the top 5 customers by revenue?")
         print(f"Answer: {result['answer'][:200]}...")
         print(f"Visualizations generated: {len(result['visualizations'])}")
-        print(f"Recommendations: {result['recommendations']}")
+        print(f"Recommendations: {result['recommendations']}")# Trigger reload
+
+ 

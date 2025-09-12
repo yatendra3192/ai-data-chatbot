@@ -40,6 +40,9 @@ COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
 # Create database directory structure
 RUN mkdir -p /railway/backend/database
 
+# Note: Database file (crm_analytics.db) is too large for Docker image
+# It will be created on first run or downloaded from external source
+
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV NODE_ENV=production
