@@ -47,6 +47,48 @@ SHIPPING_METHOD_MAPPING = {
     5: "Full Load", 6: "Will Call", 7: "NA"
 }
 
+# Quote table mappings
+QUOTE_STATE_MAPPING = {
+    0: "Draft", 1: "Active", 2: "In Review", 3: "Won", 4: "Lost", 5: "Closed"
+}
+
+QUOTE_STATUS_MAPPING = {
+    0: "New", 1: "In Progress", 2: "Submitted", 3: "Revised",
+    4: "Accepted", 5: "Cancelled", 6: "Closed"
+}
+
+QUOTE_APPROVAL_MAPPING = {
+    0: "Pending", 1: "Approved", 2: "Rejected"
+}
+
+PROBABILITY_MAPPING = {
+    0: "Low", 1: "Medium", 2: "High"
+}
+
+FEASIBLE_MAPPING = {
+    0: "No", 1: "Yes"
+}
+
+FREIGHT_TERMS_MAPPING = {
+    0: "FOB", 1: "CIF", 2: "EXW"
+}
+
+PAYMENT_TERMS_MAPPING = {
+    0: "Net 30", 1: "Net 60", 2: "Due on Receipt"
+}
+
+ORDER_TYPE_MAPPING = {
+    0: "Standard", 1: "Return", 2: "Service"
+}
+
+PROFITABILITY_MAPPING = {
+    0: "Not Profitable", 1: "Profitable"
+}
+
+QUOTE_SHIPPING_METHOD_MAPPING = {
+    0: "Air", 1: "Road", 2: "Sea", 3: "Courier"
+}
+
 def get_database_schema():
     """Get the database schema for the LLM context"""
     return """
@@ -120,14 +162,78 @@ def get_database_schema():
        - exchangerate: Exchange Rate
        - transactioncurrencyidname: Transaction Currency Name
     
-    2. quote table (141,461 rows):
-       - Id (TEXT PRIMARY KEY)
-       - name: Quote name
-       - totalamount: Quote total amount (REAL)
-       - statuscode: Quote status (INTEGER)
-       - customeridname: Customer name
-       - modifiedon: Last modified date (TEXT)
-       - quotenumber: Quote number
+    2. quote table (141,461 rows) - DETAILED COLUMN DICTIONARY:
+       Core Fields:
+       - Id (TEXT PRIMARY KEY): Quote Record ID
+       - quotenumber: Quote Number (unique identifier)
+       - name: Quote Name
+       - description: Quote Description
+       - quoteid: Quote ID
+       
+       Status Fields (IMPORTANT - Use these mappings):
+       - statecode: Quote State
+         * 0=Draft, 1=Active, 2=In Review, 3=Won, 4=Lost, 5=Closed
+       - statuscode: Quote Status
+         * 0=New, 1=In Progress, 2=Submitted, 3=Revised
+         * 4=Accepted, 5=Cancelled, 6=Closed
+       
+       Customer Information:
+       - customerid: Customer ID
+       - customeridname: Customer Name (use this for customer analysis)
+       - new_customerreference: Customer Reference
+       - eht_custponumber: Customer PO Number
+       
+       Financial Fields:
+       - totalamount: Total Quote Amount
+       - totalamount_base: Total Amount (Base Currency)
+       - totallineitemamount: Total Line Item Amount
+       - totaldiscountamount: Total Discount Amount
+       - totaltax: Total Tax
+       - totalamountlessfreight: Total Amount Less Freight
+       - ehe_totalcost: Total Cost
+       - ehe_totalmargin: Total Margin
+       - msdyn_grossmargin: Gross Margin
+       - msdyn_estimatedquotemargin: Estimated Quote Margin
+       
+       Approval & Probability Fields:
+       - ehe_quoteapprovalstatus: Quote Approval Status (0=Pending, 1=Approved, 2=Rejected)
+       - ehe_brandmanagerapprovalstatus: Brand Manager Approval (0=Pending, 1=Approved, 2=Rejected)
+       - eht_probability: Probability (0=Low, 1=Medium, 2=High)
+       - msdyn_feasible: Feasibility Status (0=No, 1=Yes)
+       
+       Shipping & Terms:
+       - shippingmethodcode: Shipping Method (0=Air, 1=Road, 2=Sea, 3=Courier)
+       - freighttermscode: Freight Terms (0=FOB, 1=CIF, 2=EXW)
+       - paymenttermscode: Payment Terms (0=Net 30, 1=Net 60, 2=Due on Receipt)
+       - shipto_city: Shipping City
+       - ehe_shiptocity: Shipping City (EHE)
+       - ehe_billtocountry: Billing Country
+       - ehe_shiptpcountry: Shipping Country
+       - willcall: Will Call (0=No, 1=Yes)
+       
+       Business Fields:
+       - msdyn_ordertype: Order Type (0=Standard, 1=Return, 2=Service)
+       - msdyn_profitability: Profitability (0=Not Profitable, 1=Profitable)
+       - ehe_closeaswon: Close as Won (0=No, 1=Yes)
+       - opportunityid: Related Opportunity ID
+       - opportunityidname: Related Opportunity Name
+       
+       Dates:
+       - modifiedon: Last Modified Date
+       - closedon: Closed On Date
+       - effectivefrom: Effective From Date
+       - effectiveto: Effective To Date
+       - requestdeliveryby: Requested Delivery Date
+       - new_expectedclosedata: Expected Close Date
+       - SinkCreatedOn: Record Created Date
+       - SinkModifiedOn: Record Modified Date
+       
+       Other Important Fields:
+       - eht_projectname: Project Name
+       - owneridname: Owner Name
+       - exchangerate: Exchange Rate
+       - transactioncurrencyidname: Transaction Currency Name
+       - revisionnumber: Revision Number
     
     3. quotedetail table (1,237,446 rows):
        - Id (TEXT PRIMARY KEY)
@@ -199,6 +305,12 @@ Important Instructions:
              GROUP BY shippingmethodcode
     WRONG: Creating CTEs with VALUES clauses or complex JOINs
 12. The shippingmethodcode column EXISTS! Never try to work around it!
+13. For Quote table analysis, use appropriate CASE statements:
+    - Quote State: CASE statecode WHEN 0 THEN 'Draft' WHEN 1 THEN 'Active' WHEN 2 THEN 'In Review' WHEN 3 THEN 'Won' WHEN 4 THEN 'Lost' WHEN 5 THEN 'Closed' END
+    - Quote Status: CASE statuscode WHEN 0 THEN 'New' WHEN 1 THEN 'In Progress' WHEN 2 THEN 'Submitted' WHEN 3 THEN 'Revised' WHEN 4 THEN 'Accepted' WHEN 5 THEN 'Cancelled' WHEN 6 THEN 'Closed' END
+    - Approval Status: CASE ehe_quoteapprovalstatus WHEN 0 THEN 'Pending' WHEN 1 THEN 'Approved' WHEN 2 THEN 'Rejected' END
+    - Probability: CASE eht_probability WHEN 0 THEN 'Low' WHEN 1 THEN 'Medium' WHEN 2 THEN 'High' END
+    - Profitability: CASE msdyn_profitability WHEN 0 THEN 'Not Profitable' WHEN 1 THEN 'Profitable' END
 
 Output Format:
 {{
